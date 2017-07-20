@@ -1,0 +1,77 @@
+<?xml version="1.0"?>
+<config>
+   <sections>
+<!-- payment tab -->
+        <payment>
+            <groups>
+<!-- newmodule fieldset -->
+                <tpay translate="label" module="paygate">
+<!-- will have title 'New Module' -->
+                    <label>Twispay Checkout</label>
+<!-- section will be collapsed in admin -->
+                    <expanded>1</expanded>
+<!-- position between other payment methods -->
+                    <sort_order>1</sort_order>
+<!-- do not show this configuration options in store scope -->
+                    <show_in_default>1</show_in_default>
+                    <show_in_website>1</show_in_website>
+                    <show_in_store>1</show_in_store>
+                    <fields>
+<!-- is this payment method active for the website? -->
+                        <active translate="label">
+<!-- label for the field -->
+                            <label>Enabled</label>
+<!-- input type for configuration value -->
+                            <frontend_type>select</frontend_type>
+<!-- model to take the option values from -->
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+<!-- field position -->
+                            <sort_order>1</sort_order>
+<!-- do not show this field in store scope -->
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </active>
+                        <api_key translate="label">
+                            <label>API Key</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>57</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment>Please enter your API Key as found in your Twispay Merchant interface</comment>   
+                        </api_key>
+                        <site_id translate="label">
+                            <label>Site Id</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>58</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment>Please enter your Site Id as found in your Twispay Merchant interface</comment> 
+                        </site_id>
+                        <payment_url translate="label">
+                            <label>Gateway URL</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>60</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </payment_url>
+                        <payment_server translate="label">
+                            <label>Server-2-Server URL</label>
+                            <frontend_type>label</frontend_type>
+                            <sort_order>62</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment><![CDATA[You must copy <a href="/tpay/payment/server/">this link</a> and add it in your merchant account with the Twispay Payment Gateway]]></comment>
+                        </payment_server>
+                        
+                    </fields>
+                </tpay>
+                
+            </groups>
+        </payment>
+    </sections>
+</config>
