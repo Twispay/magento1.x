@@ -40,10 +40,14 @@
     <default>
         <payment>
             <tpay>
-                <active>1</active>
                 <model>tpay/PaymentMethod</model>
-                <order_status>pending</order_status>
-                <title>Credit Card (by Twispay)</title>
+                <active>1</active>
+                <liveMode>0</liveMode>
+                <stagingSiteId></stagingSiteId>
+                <stagingApiKey></stagingApiKey>
+                <liveSiteId></liveSiteId>
+                <liveApiKey></liveApiKey>
+                <paymentServer></paymentServer>
             </tpay>
         </payment>
     </default>
@@ -58,4 +62,4 @@
             </tpay>
         </routers>
     </frontend>
-</config> 
+</config>

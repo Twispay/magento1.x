@@ -5,6 +5,7 @@ $_order = new Mage_Sales_Model_Order();
 $orderId = Mage::getSingleton('checkout/session')->getLastRealOrderId();
 $_order->loadByIncrementId($orderId);
 ?>
+
 <br>
 <br>
 <!-- We can peacefully add some nice redirection here with some intentional delay -->
@@ -35,9 +36,9 @@ $_order->loadByIncrementId($orderId);
 	{
     ?> 
     <input type="hidden" name="item[<?php echo $key;?>]" value="<?php echo $ord->getName();?>">
-    <input type="hidden" name="unitPrice[<?php echo $key;?>]" value="<?php echo strval(number_format((float)$ord->getPriceInclTax(), 2, '.', ''));?>">
+    <input type="hidden" name="unitPrice[<?php echo $key;?>]" value="<?php echo (string)number_format((float)$ord->getPriceInclTax(), 2, '.', '');?>">
     <input type="hidden" name="units[<?php echo $key;?>]" value="<?php echo (int)$ord->getQtyOrdered();?>">
-    <input type="hidden" name="subTotal[<?php echo $key;?>]" value="<?php echo strval(number_format((float)$ord->getRowTotalInclTax(), 2, '.', ''));?>">
+    <input type="hidden" name="subTotal[<?php echo $key;?>]" value="<?php echo (string)number_format((float)$ord->getRowTotalInclTax(), 2, '.', '');?>">
     <?php
     $index++;
     
@@ -46,9 +47,9 @@ $_order->loadByIncrementId($orderId);
     if ($_order->getShippingAmount() > 0) { 
     ?> 
     <input type="hidden" name="item[<?php echo $index;?>]" value="Transport">
-    <input type="hidden" name="unitPrice[<?php echo $index;?>]" value="<?php echo strval(number_format((float) $_order->getShippingAmount(), 2, '.', ''));?>">
+    <input type="hidden" name="unitPrice[<?php echo $index;?>]" value="<?php echo (string)number_format((float) $_order->getShippingAmount(), 2, '.', '');?>">
     <input type="hidden" name="units[<?php echo $index;?>]" value="1">
-    <input type="hidden" name="subTotal[<?php echo $index;?>]" value="<?php echo strval(number_format((float) $_order->getShippingAmount(), 2, '.', ''));?>">
+    <input type="hidden" name="subTotal[<?php echo $index;?>]" value="<?php echo (string)number_format((float) $_order->getShippingAmount(), 2, '.', '');?>">
     <?php
     	
     }
