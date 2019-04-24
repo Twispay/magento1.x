@@ -3,6 +3,7 @@
     <modules>
         <Twispay_Tpay>
             <version>1.0.0</version>
+            <active>true</active>
         </Twispay_Tpay>
     </modules>
     <global>
@@ -41,7 +42,6 @@
         <payment>
             <tpay>
                 <model>tpay/PaymentMethod</model>
-                <active>1</active>
                 <liveMode>0</liveMode>
                 <stagingSiteId></stagingSiteId>
                 <stagingApiKey></stagingApiKey>
