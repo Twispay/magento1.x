@@ -139,7 +139,7 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
 
       $link = $url;
       $payment = $order->getPayment();
-      $payment->setTransactionId(time()); // Make it unique.
+      $payment->setTransactionId($orderId . '_' . time()); // Make it unique.
       $transaction = $payment->addTransaction(Mage_Sales_Model_Order_Payment_Transaction::TYPE_AUTH, null, false, 'OK');
       $transaction->setAdditionalInformation(Mage_Sales_Model_Order_Payment_Transaction::RAW_DETAILS, array('Context' => 'Token payment', 'Amount' => $amount, 'Status' => 0, 'Url' => $link));
       $transaction->setIsTransactionClosed(false); // Close the transaction on return?
