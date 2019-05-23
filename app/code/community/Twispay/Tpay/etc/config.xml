@@ -37,6 +37,11 @@
                 </connection>
             </tpay_read>
         </resources>
+        <helpers>
+            <tpay>
+                <class>Twispay_Tpay_Helper</class>
+            </tpay>
+        </helpers>
     </global>
     <default>
         <payment>
