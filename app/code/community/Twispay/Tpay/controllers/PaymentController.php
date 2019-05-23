@@ -82,7 +82,6 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
 
       /* Check if shiping price needs to be added. */
       if(0 < $order->getShippingAmount()){
-        $index = count($items);
         $items[] = [ 'item' => "Transport"
                    , 'units' =>  1
                    , 'unitPrice' => (string) number_format((float) $order->getShippingAmount(), 2, '.', '')
@@ -211,7 +210,6 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
 
     /* Extract the order. */
     $orderId = explode('_', $decrypted['externalOrderId'])[0];
-    $order = Mage::getModel('sales/order')->loadByIncrementId($orderId);
 
     /* Extract the transaction status. */
     $status = (empty($decrypted['status'])) ? ($decrypted['transactionStatus']) : ($decrypted['status']);
@@ -270,7 +268,6 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
 
     /* Extract the order. */
     $orderId = explode('_', $decrypted['externalOrderId'])[0];
-    $order = Mage::getModel('sales/order')->loadByIncrementId($orderId);
 
     /* Extract the transaction status. */
     $status = (empty($decrypted['status'])) ? ($decrypted['transactionStatus']) : ($decrypted['status']);
