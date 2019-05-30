@@ -53,6 +53,7 @@
                 <liveSiteId></liveSiteId>
                 <liveApiKey></liveApiKey>
                 <paymentServer></paymentServer>
+                <contactEmail></contactEmail>
             </tpay>
         </payment>
     </default>
@@ -66,5 +67,21 @@
                 </args>
             </tpay>
         </routers>
+        <translate>
+            <modules>
+                <Twispay_Tpay>
+                    <files>
+                        <default>Twispay_Tpay.csv</default>
+                    </files>
+                </Twispay_Tpay>
+            </modules>
+        </translate>
+        <layout>
+            <updates>
+                <tpay module="Twispay_Tpay">
+                    <file>tpay.xml</file>
+                </tpay>
+            </updates>
+        </layout>
     </frontend>
 </config>

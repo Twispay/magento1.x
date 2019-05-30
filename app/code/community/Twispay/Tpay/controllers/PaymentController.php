@@ -47,6 +47,11 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
         $apiKey = Mage::getStoreConfig('payment/tpay/stagingApiKey', $storeId);
         $url = 'https://secure-stage.twispay.com';
       }
+
+      if(('' == $siteId) || ('' == $apiKey)){
+        Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__('Payment failed: Incomplete or missing configuration.'));
+        $this->_redirect('checkout/onepage', ['_secure' => TRUE]);
+      }
       Mage::Log(__FUNCTION__ . ': siteId=' . $siteId . ' apiKey=' . $apiKey . ' url=' . $url, Zend_Log::DEBUG, $this->logFileName);
 
       /* Extract the billind and shipping addresses. */
@@ -177,6 +182,11 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
 
     /* Check if the plugin is set to the live mode. */
     $apiKey = (1 == $liveMode) ? (Mage::getStoreConfig('payment/tpay/liveApiKey', $storeId)) : (Mage::getStoreConfig('payment/tpay/stagingApiKey', $storeId));
+
+    if('' == $apiKey){
+      Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__('Payment failed: Incomplete or missing configuration.'));
+      $this->_redirect('checkout/onepage', ['_secure' => TRUE]);
+    }
     Mage::Log(__FUNCTION__ . ': apiKey=' . $apiKey, Zend_Log::DEBUG, $this->logFileName);
 
     /* Get the server response. */
@@ -189,7 +199,7 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
     /* Check that the 'result' POST param exists. */
     if(NULL == $response){
       Mage::log(__FUNCTION__ . ": NULL response recived.", Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
-      $this->_redirect('checkout/onepage/failure', array ('_secure' => true));
+      $this->_redirect('checkout/onepage/failure', ['_secure' => TRUE]);
     }
 
     /* Decrypt the response. */
@@ -197,7 +207,7 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
 
     if(FALSE == $decrypted){
       Mage::log(__FUNCTION__ . ": Failed to decript the response.", Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
-      $this->_redirect('checkout/onepage/failure', array ('_secure' => true));
+      $this->_redirect('checkout/onepage/failure', ['_secure' => TRUE]);
     }
 
     /* Validate the decripted response. */
@@ -205,7 +215,7 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
 
     if(TRUE !== $orderValidation){
       Mage::log(__FUNCTION__ . ": Failed to validate the response.", Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
-      $this->_redirect('checkout/onepage/failure', array ('_secure' => true));
+      $this->_redirect('checkout/onepage/failure', ['_secure' => TRUE]);
     }
 
     /* Extract the order. */
@@ -215,13 +225,20 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
     $status = (empty($decrypted['status'])) ? ($decrypted['transactionStatus']) : ($decrypted['status']);
 
     /* Update the order status. */
-    $statusUpdate = Mage::helper('tpay')->updateStatus_backUrl($orderId, $status, $decrypted->transactionId);
+    $statusUpdate = Mage::helper('tpay')->updateStatus_backUrl($orderId, $status, $decrypted['transactionId']);
 
     /* Redirect user to propper checkout page. */
     if(TRUE == $statusUpdate){
-      $this->_redirect('checkout/onepage/success', ['_secure' => true]);
+      $this->_redirect('checkout/onepage/success', ['_secure' => TRUE]);
     } else {
-      $this->_redirect('checkout/onepage/failure', ['_secure' => true]);
+      /* Read the configuration contact email. */
+      $contactEmail = Mage::getStoreConfig('payment/tpay/contactEmail', $storeId);
+      if('' != $contactEmail){
+        /* Add the contact email to the magento registry. */
+        Mage::getSingleton('core/session')->setContactEmail($contactEmail);
+      }
+
+      $this->_redirect('checkout/onepage/failure', ['_secure' => TRUE]);
     }
   }
 
@@ -239,12 +256,17 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
 
     /* Check if the plugin is set to the live mode. */
     $apiKey = (1 == $liveMode) ? (Mage::getStoreConfig('payment/tpay/liveApiKey', $storeId)) : (Mage::getStoreConfig('payment/tpay/stagingApiKey', $storeId));
+
+    if('' == $apiKey){
+      Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__('Payment failed: Incomplete or missing configuration.'));
+      $this->_redirect('checkout/onepage', ['_secure' => TRUE]);
+    }
     Mage::Log(__FUNCTION__ . ': apiKey=' . $apiKey, Zend_Log::DEBUG, $this->logFileName);
 
     /* Check if we received a response. */
     if( (FALSE == isset($_POST['opensslResult'])) && (FALSE == isset($_POST['result'])) ) {
       Mage::log(__FUNCTION__ . ": NULL response recived.", Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
-      $this->_redirect('checkout/onepage/failure', array ('_secure' => true));
+      $this->_redirect('checkout/onepage/failure', ['_secure' => TRUE]);
     }
 
     /* Get the server response. */
@@ -255,7 +277,7 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
 
     if(FALSE == $decrypted){
       Mage::log(__FUNCTION__ . ": Failed to decript the response.", Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
-      $this->_redirect('checkout/onepage/failure', array ('_secure' => true));
+      $this->_redirect('checkout/onepage/failure', ['_secure' => TRUE]);
     }
 
     /* Validate the decripted response. */
@@ -263,7 +285,7 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
 
     if(TRUE !== $orderValidation){
       Mage::log(__FUNCTION__ . ": Failed to validate the response.", Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
-      $this->_redirect('checkout/onepage/failure', array ('_secure' => true));
+      $this->_redirect('checkout/onepage/failure', ['_secure' => TRUE]);
     }
 
     /* Extract the order. */
@@ -272,6 +294,6 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
     /* Extract the transaction status. */
     $status = (empty($decrypted['status'])) ? ($decrypted['transactionStatus']) : ($decrypted['status']);
 
-    Mage::helper('tpay')->updateStatus_IPN($orderId, $status, $decrypted->transactionId);
+    Mage::helper('tpay')->updateStatus_IPN($orderId, $status, $decrypted['transactionId']);
   }
 }

@@ -35,29 +35,4 @@ class Twispay_Tpay_Model_PaymentMethod extends Mage_Payment_Model_Method_Abstrac
     Mage::Log ("Step 2 Process: Getting the redirect URL: $redirectUrl", Zend_Log::DEBUG, $this->logFileName);
     return $redirectUrl;
   }
-
-
-  /**
-   * Function used to force the authorization of any received order.
-   */
-  public function authorize(Varien_Object $payment, $amount) {
-    Mage::Log ( 'Step 0 Process: Authorize', Zend_Log::DEBUG, $this->logFileName );
-    return $this;
-  }
-
-
-  /**
-   * This method is called if we are authorising AND
-   * capturing a transaction
-   */
-  public function capture(Varien_Object $payment, $amount) {
-    Mage::Log ( 'Step 1 Process: Create and capture the process', Zend_Log::DEBUG, $this->logFileName );
-    return $this;
-  }
-
-
-  public function serverurl() {
-      Mage::Log ( "running serverurl", Zend_Log::DEBUG, $this->logFileName );
-      return "testurlserver";
-  }
 }

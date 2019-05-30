@@ -200,10 +200,11 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
         /* Set order status. */
         $order->setState(Mage_Sales_Model_Order::STATE_CANCELED, true);
         $order->setStatus(Mage_Sales_Model_Order::STATE_CANCELED);
-        $order->addStatusToHistory($order->getStatus(), 'Payment failed for order with reference ' . $transactionId);
+        $order->addStatusToHistory($order->getStatus(), Mage::helper('tpay')->__('Order #%s canceled as payment for transaction #%s failed.', $orderId, $transactionId));
         $order->save();
 
         Mage::Log($this->messages['log_ok_status_failed'] . $orderId, Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
+        Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__('Order #%s canceled as payment failed.', $orderId));
         return FALSE;
       break;
 
@@ -211,10 +212,11 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
         /* Set order status. */
         $order->setState(Mage_Sales_Model_Order::STATE_PENDING_PAYMENT, true);
         $order->setStatus(Mage_Sales_Model_Order::STATE_PENDING_PAYMENT);
-        $order->addStatusToHistory($order->getStatus(), 'Payment pending for order with reference ' . $transactionId);
+        $order->addStatusToHistory($order->getStatus(), Mage::helper('tpay')->__('Payment pending for transaction #%s, order #%s.', $transactionId, $orderId));
         $order->save();
 
         Mage::Log($this->messages['log_ok_status_hold'] . $orderId, Zend_Log::WARNING , $this->logFileName, /*forceLog*/TRUE);
+        Mage::getSingleton('core/session')->addWarning(Mage::helper('tpay')->__('Payment pending for order #%s', $orderId));
         return FALSE;
       break;
 
@@ -223,10 +225,11 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
         /* Set order status. */
         $order->setState(Mage_Sales_Model_Order::STATE_PROCESSING, true);
         $order->setStatus(Mage_Sales_Model_Order::STATE_PROCESSING);
-        $order->addStatusToHistory($order->getStatus(), 'Payment successful for order with reference ' . $transactionId);
+        $order->addStatusToHistory($order->getStatus(), Mage::helper('tpay')->__('Payment successful for transaction #%s, order #%s.', $transactionId, $orderId));
         $order->save();
 
         Mage::Log($this->messages['log_ok_status_complete'] . $orderId, Zend_Log::NOTICE , $this->logFileName, /*forceLog*/TRUE);
+        Mage::getSingleton('core/session')->addSuccess(Mage::helper('tpay')->__('Payment successful for order #%s.', $orderId));
         return TRUE;
       break;
 
