@@ -47,6 +47,7 @@
         <payment>
             <tpay>
                 <model>tpay/PaymentMethod</model>
+                <payment_action>authorize_capture</payment_action>
                 <liveMode>0</liveMode>
                 <stagingSiteId></stagingSiteId>
                 <stagingApiKey></stagingApiKey>

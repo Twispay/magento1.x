@@ -28,11 +28,44 @@ class Twispay_Tpay_Model_PaymentMethod extends Mage_Payment_Model_Method_Abstrac
 
 
   /**
+   * Dummy function that is called when the config 'Payment Action'
+   *  option is set to "Authorize Only" and will automatically
+   *  authorize all the received orders.
+   * 
+   * Background result:
+   *   - order with status PROCESSING is created;
+   *   - transaction is registered into magento with the transaction id;
+   *   - order comment is added automatically for authorization;
+   */
+  public function authorize(Varien_Object $payment, $amount) {
+    Mage::Log(Mage::helper('tpay')->__('Authorize payment'), Zend_Log::NOTICE, $this->logFileName);
+    return $this;
+  }
+
+
+  /**
+   * Dummy function that is called when the config 'Payment Action'
+   *  option is set to "Authorize and Capture" and will automatically
+   *  authorize and capture all the received orders.
+   * 
+   * Background result:
+   *   - order with status PROCESSING is created;
+   *   - transaction is registered into magento with the transaction id;
+   *   - order comment is added automatically for authorization;
+   *   - invoice is created with status PAID;
+   */
+  public function capture(Varien_Object $payment, $amount) {
+    Mage::Log(Mage::helper('tpay')->__('Authorize and capture payment'), Zend_Log::NOTICE, $this->logFileName);
+    return $this;
+  }
+
+
+  /**
    * Construct the redirect URL.
    */
   public function getOrderPlaceRedirectUrl() {
     $redirectUrl = Mage::getUrl('tpay/payment/redirect');
-    Mage::Log ("Step 2 Process: Getting the redirect URL: $redirectUrl", Zend_Log::DEBUG, $this->logFileName);
+    Mage::Log (Mage::helper('tpay')->__('Getting the redirect URL: %s', $redirectUrl), Zend_Log::NOTICE, $this->logFileName);
     return $redirectUrl;
   }
 }

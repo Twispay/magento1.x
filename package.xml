@@ -8,18 +8,21 @@
     <extends/>
     <summary>Twispay Payment Gateway extension</summary>
     <description>The official Twispay Payment Gateway extension for Magento 1.x</description>
-    <notes>Redesigned the configuration page to make it more user friendly.&#xD;
-Updated the checksum calculation algorithm.&#xD;
-Added logic to process all the Twispay response states.&#xD;
-Moved helper code to to the module default helper.&#xD;
-Added debug and error logging. Error login will always be printed and debug logs are available only when logging is enabled.&#xD;
-Added contact email field to the configuration page.&#xD;
-Added checkout success and failure pages.&#xD;
-Added en_US lang file.</notes>
+    <notes>
+      Redesigned the configuration page to make it more user friendly.
+      Updated the checksum calculation algorithm.
+      Added logic to process all the Twispay response states.
+      Moved helper code to to the module default helper.
+      Added debug and error logging. Error login will always be printed and debug logs are available only when logging is enabled.
+      Added contact email field to the configuration page.
+      Added checkout success and failure pages.
+      Added en_US lang file.
+      Added methods and config option for authorize and capture payment steps.
+    </notes>
     <authors><author><name>Cristi Gheorghe</name><user>admin</user><email>cristian.gheorghe@twispay.com</email></author></authors>
-    <date>2019-05-30</date>
-    <time>19:51:39</time>
-    <contents><target name="magecommunity"><dir name="Twispay"><dir name="Tpay"><dir name="Block"><dir name="Form"><file name="Tpay.php" hash="696c3999da46f46c56018443bdeb4f85"/></dir></dir><dir name="Helper"><file name="Data.php" hash="7634a4b5554fbea299b397364b15772a"/></dir><dir name="Model"><file name="PaymentMethod.php" hash="965267411c39bae93d9f9f357ba3f901"/></dir><dir name="controllers"><file name="PaymentController.php" hash="65e81fe5f60976d055559853478953e3"/></dir><dir name="etc"><file name="config.xml" hash="ecbe0e692e1247e4161c11018c96a675"/><file name="system.xml" hash="5a80aa53f9af6b2c1799d9c4777702d8"/></dir><file name=".DS_Store" hash="822777d708619165d544d3256174adc2"/></dir></dir></target><target name="mageskin"><dir name="frontend"><dir name="base"><dir name="default"><dir name="images"><dir name="tpay"><file name="mastercard.svg" hash="fbea9bd66af76b9758b8e5dc169209b1"/><file name="secure.svg" hash="276cd665d3acde3b3928639cdbfed796"/><file name="twispay.svg" hash="70ab193c2d1083bab9f085a32c03db4f"/><file name="visa.svg" hash="e40f598b1a86b8798cff61bf3cf96b1c"/></dir></dir></dir></dir></dir></target><target name="magedesign"><dir name="frontend"><dir name="base"><dir name="default"><dir name="template"><dir name="tpay"><dir name="checkout"><file name="failure.phtml" hash="4b3c7aac3dd4d5f5d315a540466b6e8a"/><file name="success.phtml" hash="1c7d114d996e3fb37a6746bc7cac0c4b"/></dir><dir name="form"><file name="tpay.phtml" hash="19f7a0cac9f89201f5b6ac3b0bc94f16"/></dir><file name="redirect.phtml" hash="9361909fb2f705dacb5bd3eb1a21efba"/><file name=".DS_Store" hash="194577a7e20bdcc7afbb718f502c134c"/></dir></dir><dir name="layout"><file name="tpay.xml" hash="656159b599561f127a67b5bbea2e1275"/></dir></dir></dir></dir></target><target name="mageetc"><dir name="modules"><file name="Twispay_Tpay.xml" hash="6bce9e25db0b6663012a954f60b969e7"/></dir></target><target name="magelocale"><dir name="en_US"><file name="Twispay_Tpay.csv" hash="7a0e3d38f19e87c6ed09bc1802d25674"/></dir></target></contents>
+    <date>2019-05-31</date>
+    <time>08:51:25</time>
+    <contents><target name="magecommunity"><dir name="Twispay"><dir name="Tpay"><dir name="Block"><dir name="Form"><file name="Tpay.php" hash="696c3999da46f46c56018443bdeb4f85"/></dir></dir><dir name="Helper"><file name="Data.php" hash="7634a4b5554fbea299b397364b15772a"/></dir><dir name="Model"><file name="PaymentMethod.php" hash="358c7988dbb458fe1b7be76af495bbef"/></dir><dir name="controllers"><file name="PaymentController.php" hash="6f78de051c998bcd341de2f39d52bd5a"/></dir><dir name="etc"><file name="config.xml" hash="ae58a6d165408f7ca3d286578371c101"/><file name="system.xml" hash="91d8f6950813ebb0d64a4203346fe7d0"/></dir><file name=".DS_Store" hash="822777d708619165d544d3256174adc2"/></dir></dir></target><target name="mageskin"><dir name="frontend"><dir name="base"><dir name="default"><dir name="images"><dir name="tpay"><file name="mastercard.svg" hash="fbea9bd66af76b9758b8e5dc169209b1"/><file name="secure.svg" hash="276cd665d3acde3b3928639cdbfed796"/><file name="twispay.svg" hash="70ab193c2d1083bab9f085a32c03db4f"/><file name="visa.svg" hash="e40f598b1a86b8798cff61bf3cf96b1c"/></dir></dir></dir></dir></dir></target><target name="magedesign"><dir name="frontend"><dir name="base"><dir name="default"><dir name="template"><dir name="tpay"><dir name="checkout"><file name="failure.phtml" hash="4b3c7aac3dd4d5f5d315a540466b6e8a"/><file name="success.phtml" hash="1c7d114d996e3fb37a6746bc7cac0c4b"/></dir><dir name="form"><file name="tpay.phtml" hash="19f7a0cac9f89201f5b6ac3b0bc94f16"/></dir><file name="redirect.phtml" hash="9361909fb2f705dacb5bd3eb1a21efba"/><file name=".DS_Store" hash="194577a7e20bdcc7afbb718f502c134c"/></dir></dir><dir name="layout"><file name="tpay.xml" hash="656159b599561f127a67b5bbea2e1275"/></dir></dir></dir></dir></target><target name="mageetc"><dir name="modules"><file name="Twispay_Tpay.xml" hash="6bce9e25db0b6663012a954f60b969e7"/></dir></target><target name="magelocale"><dir name="en_US"><file name="Twispay_Tpay.csv" hash="a1c81f275c52342c5e915ca92ebeddad"/></dir></target></contents>
     <compatible/>
     <dependencies><required><php><min>5.3.0</min><max>6.0.0</max></php></required></dependencies>
 </package>

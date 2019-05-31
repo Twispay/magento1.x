@@ -198,7 +198,8 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
     }
     /* Check that the 'result' POST param exists. */
     if(NULL == $response){
-      Mage::log(__FUNCTION__ . ": NULL response recived.", Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
+      Mage::log(__FUNCTION__ . Mage::helper('tpay')->__('NULL response received.'), Zend_Log::ERR, $this->logFileName);
+      Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__('NULL response received.'));
       $this->_redirect('checkout/onepage/failure', ['_secure' => TRUE]);
     }
 
@@ -206,7 +207,8 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
     $decrypted = Mage::helper('tpay')->twispay_tw_decrypt_message(/*tw_encryptedResponse*/$response, /*secretKey*/$apiKey);
 
     if(FALSE == $decrypted){
-      Mage::log(__FUNCTION__ . ": Failed to decript the response.", Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
+      Mage::log(__FUNCTION__ . Mage::helper('tpay')->__('Failed to decript the response.'), Zend_Log::ERR, $this->logFileName);
+      Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__('Failed to decript the response.'));
       $this->_redirect('checkout/onepage/failure', ['_secure' => TRUE]);
     }
 
@@ -214,7 +216,8 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
     $orderValidation = Mage::helper('tpay')->twispay_tw_checkValidation($decrypted);
 
     if(TRUE !== $orderValidation){
-      Mage::log(__FUNCTION__ . ": Failed to validate the response.", Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
+      Mage::log(__FUNCTION__ . Mage::helper('tpay')->__('Failed to validate the response.'), Zend_Log::ERR, $this->logFileName);
+      Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__('Failed to validate the response.'));
       $this->_redirect('checkout/onepage/failure', ['_secure' => TRUE]);
     }
 
@@ -265,8 +268,8 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
 
     /* Check if we received a response. */
     if( (FALSE == isset($_POST['opensslResult'])) && (FALSE == isset($_POST['result'])) ) {
-      Mage::log(__FUNCTION__ . ": NULL response recived.", Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
-      $this->_redirect('checkout/onepage/failure', ['_secure' => TRUE]);
+      Mage::log(__FUNCTION__ .  Mage::helper('tpay')->__('NULL response received.'), Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
+      return;
     }
 
     /* Get the server response. */
@@ -276,16 +279,16 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
     $decrypted = Mage::helper('tpay')->twispay_tw_decrypt_message(/*tw_encryptedResponse*/$response, /*secretKey*/$apiKey);
 
     if(FALSE == $decrypted){
-      Mage::log(__FUNCTION__ . ": Failed to decript the response.", Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
-      $this->_redirect('checkout/onepage/failure', ['_secure' => TRUE]);
+      Mage::log(__FUNCTION__ . Mage::helper('tpay')->__('Failed to decript the response.'), Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
+      return;
     }
 
     /* Validate the decripted response. */
     $orderValidation = Mage::helper('tpay')->twispay_tw_checkValidation($decrypted);
 
     if(TRUE !== $orderValidation){
-      Mage::log(__FUNCTION__ . ": Failed to validate the response.", Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
-      $this->_redirect('checkout/onepage/failure', ['_secure' => TRUE]);
+      Mage::log(__FUNCTION__ . Mage::helper('tpay')->__('Failed to validate the response.'), Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
+      return;
     }
 
     /* Extract the order. */
