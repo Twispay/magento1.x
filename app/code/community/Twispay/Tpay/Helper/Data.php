@@ -153,25 +153,23 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
 
       return FALSE;
     } else {
-      $data = [ 'id_cart'       => explode('_', $tw_response['externalOrderId'])[0]
-              , 'status'        => (empty($tw_response['status'])) ? ($tw_response['transactionStatus']) : ($tw_response['status'])
-              , 'identifier'    => $tw_response['identifier']
-              , 'orderId'       => (int)$tw_response['orderId']
-              , 'transactionId' => (int)$tw_response['transactionId']
-              , 'customerId'    => (int)$tw_response['customerId']
-              , 'cardId'        => (!empty($tw_response['cardId'])) ? (( int )$tw_response['cardId']) : (0)];
+      $data = [ 'externalOrderId' => explode('_', $tw_response['externalOrderId'])[0]
+              , 'status'          => (empty($tw_response['status'])) ? ($tw_response['transactionStatus']) : ($tw_response['status'])
+              , 'identifier'      => $tw_response['identifier']
+              , 'orderId'         => (int)$tw_response['orderId']
+              , 'transactionId'   => (int)$tw_response['transactionId']
+              , 'customerId'      => (int)$tw_response['customerId']
+              , 'cardId'          => (!empty($tw_response['cardId'])) ? (( int )$tw_response['cardId']) : (0)];
 
       Mage::Log($this->messages['log_ok_response_data'] . json_encode($data), Zend_Log::NOTICE , $this->logFileName);
 
       if(!in_array($data['status'], $this->resultStatuses)){
         Mage::Log($this->messages['log_error_wrong_status'] . $data['status'], Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
 
-        Mage::Log($this->messages['log_ok_response_data'] . json_encode($data), Zend_Log::NOTICE , $this->logFileName);
-
         return FALSE;
       }
 
-      Mage::Log($this->messages['log_ok_validating_complete'] . $data['id_cart'], Zend_Log::NOTICE , $this->logFileName);
+      Mage::Log($this->messages['log_ok_validating_complete'] . $data['externalOrderId'], Zend_Log::NOTICE , $this->logFileName);
 
       return TRUE;
     }
@@ -235,6 +233,7 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
 
       default:
         Mage::Log($this->messages['log_error_wrong_status'] . $orderId, Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
+        return FALSE;
       break;
     }
   }
@@ -247,7 +246,8 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
    * @param serverStatus: The status received from server.
    * @param transactionId: The unique transaction ID of the order.
    *
-   * @return void
+   * @return bool(FALSE)     - If server status in: [COMPLETE_FAIL, CANCEL_OK, VOID_OK, CHARGE_BACK, THREE_D_PENDING]
+   *         bool(TRUE)      - If server status in: [REFUND_OK, IN_PROGRESS, COMPLETE_OK]
    */
   public function updateStatus_IPN($orderId, $serverStatus, $transactionId){
     /* Extract the order. */
@@ -262,6 +262,7 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
         $order->save();
 
         Mage::Log($this->messages['log_ok_status_failed'] . $orderId, Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
+        return FALSE;
       break;
 
       case $this->resultStatuses['REFUND_OK']:
@@ -272,6 +273,7 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
         $order->save();
 
         Mage::Log($this->messages['log_ok_status_refund'] . $orderId, Zend_Log::NOTICE , $this->logFileName, /*forceLog*/TRUE);
+        return TRUE;
       break;
 
       case $this->resultStatuses['CANCEL_OK']:
@@ -280,10 +282,11 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
         /* Set order status. */
         $order->setState(Mage_Sales_Model_Order::STATE_CANCELED, true);
         $order->setStatus(Mage_Sales_Model_Order::STATE_CANCELED);
-        $order->addStatusToHistory($order->getStatus(), 'Payment refunded for order with reference ' . $transactionId);
+        $order->addStatusToHistory($order->getStatus(), 'Payment canceled for order with reference ' . $transactionId);
         $order->save();
 
         Mage::Log($this->messages['log_ok_status_canceled'] . $orderId, Zend_Log::NOTICE , $this->logFileName, /*forceLog*/TRUE);
+        return FALSE;
       break;
 
       case $this->resultStatuses['THREE_D_PENDING']:
@@ -294,6 +297,7 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
         $order->save();
 
         Mage::Log($this->messages['log_ok_status_hold'] . $orderId, Zend_Log::WARNING , $this->logFileName, /*forceLog*/TRUE);
+        return FALSE;
       break;
 
       case $this->resultStatuses['IN_PROGRESS']:
@@ -305,10 +309,12 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
         $order->save();
 
         Mage::Log($this->messages['log_ok_status_complete'] . $orderId, Zend_Log::NOTICE , $this->logFileName, /*forceLog*/TRUE);
+        return TRUE;
       break;
 
       default:
         Mage::Log($this->messages['log_error_wrong_status'] . $orderId, Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
+        return FALSE;
       break;
     }
   }
