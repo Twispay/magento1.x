@@ -142,15 +142,6 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
       $base64Checksum = Mage::helper('tpay')->getBase64Checksum($orderData, $apiKey);
       Mage::Log(__FUNCTION__ . ': base64Checksum=' . $base64Checksum, Zend_Log::DEBUG, $this->logFileName);
 
-      $link = $url;
-      $payment = $order->getPayment();
-      $payment->setTransactionId($orderId . '_' . time()); // Make it unique.
-      $transaction = $payment->addTransaction(Mage_Sales_Model_Order_Payment_Transaction::TYPE_AUTH, null, false, 'OK');
-      $transaction->setAdditionalInformation(Mage_Sales_Model_Order_Payment_Transaction::RAW_DETAILS, array('Context' => 'Token payment', 'Amount' => $amount, 'Status' => 0, 'Url' => $link));
-      $transaction->setIsTransactionClosed(false); // Close the transaction on return?
-      $transaction->save();
-      $order->save();
-
       /* Send the data to the redirect block and render the complete layout. */
       $block = $this->getLayout()->createBlock( 'Mage_Core_Block_Template'
                                               , 'tpay'
@@ -215,23 +206,38 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
     /* Validate the decripted response. */
     $orderValidation = Mage::helper('tpay')->twispay_tw_checkValidation($decrypted);
 
-    if(TRUE !== $orderValidation){
+    if(FALSE == $orderValidation){
       Mage::log(__FUNCTION__ . Mage::helper('tpay')->__('Failed to validate the response.'), Zend_Log::ERR, $this->logFileName);
       Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__('Failed to validate the response.'));
       $this->_redirect('checkout/onepage/failure', ['_secure' => TRUE]);
     }
 
-    /* Extract the order. */
-    $orderId = explode('_', $decrypted['externalOrderId'])[0];
-
     /* Extract the transaction status. */
     $status = (empty($decrypted['status'])) ? ($decrypted['transactionStatus']) : ($decrypted['status']);
 
     /* Update the order status. */
-    $statusUpdate = Mage::helper('tpay')->updateStatus_backUrl($orderId, $status, $decrypted['transactionId']);
+    $statusUpdate = Mage::helper('tpay')->updateStatus_backUrl(/*orderId*/$decrypted['externalOrderId'], $status, /*transactionId*/$decrypted['transactionId']);
 
     /* Redirect user to propper checkout page. */
     if(TRUE == $statusUpdate){
+      /* Extract the order. */
+      $order = Mage::getModel('sales/order')->loadByIncrementId($decrypted['externalOrderId']);
+
+      /* Save the payment transaction. */
+      $payment = $order->getPayment();
+      $payment->setTransactionId($decrypted['transactionId']);
+      $transaction = $payment->addTransaction(Mage_Sales_Model_Order_Payment_Transaction::TYPE_CAPTURE, null, false, 'OK');
+      $transaction->setAdditionalInformation( Mage_Sales_Model_Order_Payment_Transaction::RAW_DETAILS
+                                            , [ 'identifier'    => $decrypted['identifier']
+                                              , 'status'        => $decrypted['status']
+                                              , 'orderId'       => $decrypted['orderId']
+                                              , 'transactionId' => $decrypted['transactionId']
+                                              , 'customerId'    => $decrypted['customerId']
+                                              , 'cardId'        => $decrypted['cardId']]);
+      $payment->setIsTransactionClosed(TRUE);
+      $transaction->save();
+      $order->save();
+
       $this->_redirect('checkout/onepage/success', ['_secure' => TRUE]);
     } else {
       /* Read the configuration contact email. */
@@ -291,12 +297,37 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
       return;
     }
 
-    /* Extract the order. */
-    $orderId = explode('_', $decrypted['externalOrderId'])[0];
-
     /* Extract the transaction status. */
     $status = (empty($decrypted['status'])) ? ($decrypted['transactionStatus']) : ($decrypted['status']);
 
-    Mage::helper('tpay')->updateStatus_IPN($orderId, $status, $decrypted['transactionId']);
+    $statusUpdate = Mage::helper('tpay')->updateStatus_IPN($decrypted['externalOrderId'], $status, $decrypted['transactionId']);
+
+    if (TRUE == $statusUpdate) {
+      /* Check if a transaction with the same transaction ID exists. */
+      $transaction = Mage::getModel('sales/order_payment_transaction')
+                         ->getCollection()
+                         ->addAttributeToFilter('order_id', $decrypted['externalOrderId'])
+                         ->addAttributeToFilter('txn_id', $decrypted['transactionId']);
+
+      if (0 == $transaction['totalRecords']) {
+        /* Create a new transaction */
+        $order = Mage::getModel('sales/order')->loadByIncrementId($decrypted['externalOrderId']);
+
+        /* Save the payment transaction. */
+        $payment = $order->getPayment();
+        $payment->setTransactionId($decrypted['transactionId']);
+        $transaction = $payment->addTransaction(Mage_Sales_Model_Order_Payment_Transaction::TYPE_CAPTURE, null, false, 'OK');
+        $transaction->setAdditionalInformation( Mage_Sales_Model_Order_Payment_Transaction::RAW_DETAILS
+                                              , [ 'identifier'    => $decrypted['identifier']
+                                                , 'status'        => $decrypted['status']
+                                                , 'orderId'       => $decrypted['orderId']
+                                                , 'transactionId' => $decrypted['transactionId']
+                                                , 'customerId'    => $decrypted['customerId']
+                                                , 'cardId'        => $decrypted['cardId']]);
+        $payment->setIsTransactionClosed(TRUE);
+        $transaction->save();
+        $order->save();
+      }
+    }
   }
 }
