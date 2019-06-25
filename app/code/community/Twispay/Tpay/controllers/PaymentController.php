@@ -134,8 +134,6 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
                    /* , 'customData' => [] */
       ];
 
-      Mage::Log(__FUNCTION__ . ': orderData=' . print_r($orderData, TRUE), Zend_Log::DEBUG, $this->logFileName);
-
       /* Encode the data and calculate the checksum. */
       $base64JsonRequest = Mage::helper('tpay')->getBase64JsonRequest($orderData);
       Mage::Log(__FUNCTION__ . ': base64JsonRequest=' . $base64JsonRequest, Zend_Log::DEBUG, $this->logFileName);
@@ -233,10 +231,16 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
                                               , 'orderId'       => $decrypted['orderId']
                                               , 'transactionId' => $decrypted['transactionId']
                                               , 'customerId'    => $decrypted['customerId']
-                                              , 'cardId'        => $decrypted['cardId']]);
+                                              , 'cardId'        => $decrypted['cardId']
+                                              , 'storeId'       => $storeId]);
       $payment->setIsTransactionClosed(TRUE);
       $transaction->save();
       $order->save();
+
+      /* Add the transaction to the invoice. */
+      $invoice = $order->getInvoiceCollection()->addAttributeToSort('created_at', 'DSC')->setPage(1, 1)->getFirstItem();
+      $invoice->setTransactionId($decrypted['transactionId']);
+      $invoice->save();
 
       $this->_redirect('checkout/onepage/success', ['_secure' => TRUE]);
     } else {
@@ -323,10 +327,16 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
                                                 , 'orderId'       => $decrypted['orderId']
                                                 , 'transactionId' => $decrypted['transactionId']
                                                 , 'customerId'    => $decrypted['customerId']
-                                                , 'cardId'        => $decrypted['cardId']]);
+                                                , 'cardId'        => $decrypted['cardId']
+                                                , 'storeId'       => $storeId]);
         $payment->setIsTransactionClosed(TRUE);
         $transaction->save();
         $order->save();
+
+        /* Add the transaction to the invoice. */
+        $invoice = $order->getInvoiceCollection()->addAttributeToSort('created_at', 'DSC')->setPage(1, 1)->getFirstItem();
+        $invoice->setTransactionId($decrypted['transactionId']);
+        $invoice->save();
       }
     }
   }
