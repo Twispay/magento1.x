@@ -14,23 +14,6 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
 
   /* The name of the logging file. */
   private $logFileName = 'tpay.log';
-  /* The error and success logging messages. */
-  private $messages = [
-    'log_ok_response_data' => '[RESPONSE]: Data: ',
-    'log_ok_validating_complete' => '[RESPONSE]: Validating completed for order ID: ',
-    'log_ok_status_complete' => '[RESPONSE]: Status complete-ok for order ID: ',
-    'log_ok_status_refund' => '[RESPONSE]: Status refund-ok for order ID: ',
-    'log_ok_status_canceled' => '[RESPONSE]: Status cancel-ok for order ID: ',
-    'log_ok_status_failed' => '[RESPONSE]: Status failed for order ID: ',
-    'log_ok_status_hold' => '[RESPONSE]: Status on-hold for order ID: ',
-    'log_ok_status_uncertain' => '[RESPONSE]: Status uncertain for order ID: ',
-
-    'log_error_wrong_status' => '[RESPONSE-ERROR]: Wrong status: ',
-    'log_error_empty_status' => '[RESPONSE-ERROR]: Empty status',
-    'log_error_empty_identifier' => '[RESPONSE-ERROR]: Empty identifier',
-    'log_error_empty_external' => '[RESPONSE-ERROR]: Empty externalOrderId',
-    'log_error_empty_transaction' => '[RESPONSE-ERROR]: Empty transactionId',
-  ];
   /* Array containing the possible result statuses. */
   private $resultStatuses = [
     'UNCERTAIN' => 'uncertain', /* No response from provider */
@@ -131,19 +114,19 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
     }
 
     if(empty($tw_response['status']) && empty($tw_response['transactionStatus'])) {
-      $tw_errors[] = $this->messages['log_error_empty_status'];
+      $tw_errors[] = Mage::helper('tpay')->__('log_error_empty_status');
     }
 
     if(empty($tw_response['identifier'])) {
-      $tw_errors[] = $this->messages['log_error_empty_identifier'];
+      $tw_errors[] = Mage::helper('tpay')->__('log_error_empty_identifier');
     }
 
     if(empty($tw_response['externalOrderId'])) {
-      $tw_errors[] = $this->messages['log_error_empty_external'];
+      $tw_errors[] = Mage::helper('tpay')->__('log_error_empty_external');
     }
 
     if(empty($tw_response['transactionId'])) {
-      $tw_errors[] = $this->messages['log_error_empty_transaction'];
+      $tw_errors[] = Mage::helper('tpay')->__('log_error_empty_transaction');
     }
 
     if(sizeof($tw_errors)) {
@@ -161,15 +144,15 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
               , 'customerId'      => (int)$tw_response['customerId']
               , 'cardId'          => (!empty($tw_response['cardId'])) ? (( int )$tw_response['cardId']) : (0)];
 
-      Mage::Log($this->messages['log_ok_response_data'] . json_encode($data), Zend_Log::NOTICE , $this->logFileName);
+      Mage::Log(Mage::helper('tpay')->__('log_ok_response_data') . json_encode($data), Zend_Log::NOTICE , $this->logFileName);
 
       if(!in_array($data['status'], $this->resultStatuses)){
-        Mage::Log($this->messages['log_error_wrong_status'] . $data['status'], Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
+        Mage::Log(Mage::helper('tpay')->__('log_error_wrong_status') . $data['status'], Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
 
         return FALSE;
       }
 
-      Mage::Log($this->messages['log_ok_validating_complete'] . $data['externalOrderId'], Zend_Log::NOTICE , $this->logFileName);
+      Mage::Log(Mage::helper('tpay')->__('log_ok_validating_complete') . $data['externalOrderId'], Zend_Log::NOTICE , $this->logFileName);
 
       return TRUE;
     }
@@ -198,11 +181,11 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
         /* Set order status. */
         $order->setState(Mage_Sales_Model_Order::STATE_CANCELED, true);
         $order->setStatus(Mage_Sales_Model_Order::STATE_CANCELED);
-        $order->addStatusToHistory($order->getStatus(), Mage::helper('tpay')->__('Order #%s canceled as payment for transaction #%s failed.', $orderId, $transactionId));
+        $order->addStatusToHistory($order->getStatus(), Mage::helper('tpay')->__('log_error_payment_failed', $orderId, $transactionId));
         $order->save();
 
-        Mage::Log($this->messages['log_ok_status_failed'] . $orderId, Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
-        Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__('Order #%s canceled as payment failed.', $orderId));
+        Mage::Log(Mage::helper('tpay')->__('log_ok_status_failed') . $orderId, Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
+        Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__('log_error_payment_failed', $orderId, $transactionId));
         return FALSE;
       break;
 
@@ -210,11 +193,11 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
         /* Set order status. */
         $order->setState(Mage_Sales_Model_Order::STATE_PENDING_PAYMENT, true);
         $order->setStatus(Mage_Sales_Model_Order::STATE_PENDING_PAYMENT);
-        $order->addStatusToHistory($order->getStatus(), Mage::helper('tpay')->__('Payment pending for transaction #%s, order #%s.', $transactionId, $orderId));
+        $order->addStatusToHistory($order->getStatus(), Mage::helper('tpay')->__('log_error_payment_pending', $transactionId, $orderId));
         $order->save();
 
-        Mage::Log($this->messages['log_ok_status_hold'] . $orderId, Zend_Log::WARNING , $this->logFileName, /*forceLog*/TRUE);
-        Mage::getSingleton('core/session')->addWarning(Mage::helper('tpay')->__('Payment pending for order #%s', $orderId));
+        Mage::Log(Mage::helper('tpay')->__('log_ok_status_hold') . $orderId, Zend_Log::WARNING , $this->logFileName, /*forceLog*/TRUE);
+        Mage::getSingleton('core/session')->addWarning(Mage::helper('tpay')->__('log_error_payment_pending', $transactionId, $orderId));
         return FALSE;
       break;
 
@@ -223,16 +206,16 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
         /* Set order status. */
         $order->setState(Mage_Sales_Model_Order::STATE_PROCESSING, true);
         $order->setStatus(Mage_Sales_Model_Order::STATE_PROCESSING);
-        $order->addStatusToHistory($order->getStatus(), Mage::helper('tpay')->__('Payment successful for transaction #%s, order #%s.', $transactionId, $orderId));
+        $order->addStatusToHistory($order->getStatus(), Mage::helper('tpay')->__('log_ok_payment_successful', $transactionId, $orderId));
         $order->save();
 
-        Mage::Log($this->messages['log_ok_status_complete'] . $orderId, Zend_Log::NOTICE , $this->logFileName, /*forceLog*/TRUE);
-        Mage::getSingleton('core/session')->addSuccess(Mage::helper('tpay')->__('Payment successful for order #%s.', $orderId));
+        Mage::Log(Mage::helper('tpay')->__('log_ok_status_complete') . $orderId, Zend_Log::NOTICE , $this->logFileName);
+        Mage::getSingleton('core/session')->addSuccess(Mage::helper('tpay')->__('log_ok_payment_successful', $transactionId, $orderId));
         return TRUE;
       break;
 
       default:
-        Mage::Log($this->messages['log_error_wrong_status'] . $orderId, Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
+        Mage::Log(Mage::helper('tpay')->__('log_error_wrong_status') . $orderId, Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
         return FALSE;
       break;
     }
@@ -261,7 +244,7 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
         $order->addStatusToHistory($order->getStatus(), 'Payment failed for order with reference ' . $transactionId);
         $order->save();
 
-        Mage::Log($this->messages['log_ok_status_failed'] . $orderId, Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
+        Mage::Log(Mage::helper('tpay')->__('log_ok_status_failed') . $orderId, Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
         return FALSE;
       break;
 
@@ -272,7 +255,7 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
         $order->addStatusToHistory($order->getStatus(), 'Payment refunded for order with reference ' . $transactionId);
         $order->save();
 
-        Mage::Log($this->messages['log_ok_status_refund'] . $orderId, Zend_Log::NOTICE , $this->logFileName, /*forceLog*/TRUE);
+        Mage::Log(Mage::helper('tpay')->__('log_ok_status_refund') . $orderId, Zend_Log::NOTICE , $this->logFileName);
         return TRUE;
       break;
 
@@ -285,7 +268,7 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
         $order->addStatusToHistory($order->getStatus(), 'Payment canceled for order with reference ' . $transactionId);
         $order->save();
 
-        Mage::Log($this->messages['log_ok_status_canceled'] . $orderId, Zend_Log::NOTICE , $this->logFileName, /*forceLog*/TRUE);
+        Mage::Log(Mage::helper('tpay')->__('log_ok_status_canceled') . $orderId, Zend_Log::NOTICE , $this->logFileName);
         return FALSE;
       break;
 
@@ -296,7 +279,7 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
         $order->addStatusToHistory($order->getStatus(), 'Payment pending for order with reference ' . $transactionId);
         $order->save();
 
-        Mage::Log($this->messages['log_ok_status_hold'] . $orderId, Zend_Log::WARNING , $this->logFileName, /*forceLog*/TRUE);
+        Mage::Log(Mage::helper('tpay')->__('log_ok_status_hold') . $orderId, Zend_Log::WARNING , $this->logFileName, /*forceLog*/TRUE);
         return FALSE;
       break;
 
@@ -308,12 +291,12 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
         $order->addStatusToHistory($order->getStatus(), 'Payment successful for order with reference ' . $transactionId);
         $order->save();
 
-        Mage::Log($this->messages['log_ok_status_complete'] . $orderId, Zend_Log::NOTICE , $this->logFileName, /*forceLog*/TRUE);
+        Mage::Log(Mage::helper('tpay')->__('log_ok_status_complete') . $orderId, Zend_Log::NOTICE , $this->logFileName);
         return TRUE;
       break;
 
       default:
-        Mage::Log($this->messages['log_error_wrong_status'] . $orderId, Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
+        Mage::Log(Mage::helper('tpay')->__('log_error_wrong_status') . $orderId, Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
         return FALSE;
       break;
     }

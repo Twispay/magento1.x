@@ -53,7 +53,7 @@ class Twispay_Tpay_Model_PaymentMethod extends Mage_Payment_Model_Method_Abstrac
    *   - order comment is added automatically for authorization;
    */
   public function authorize(Varien_Object $payment, $amount) {
-    Mage::Log(Mage::helper('tpay')->__('Authorize payment'), Zend_Log::NOTICE, $this->logFileName);
+    Mage::Log(Mage::helper('tpay')->__('log_info_authorize_payment'), Zend_Log::NOTICE, $this->logFileName);
     return $this;
   }
 
@@ -70,7 +70,7 @@ class Twispay_Tpay_Model_PaymentMethod extends Mage_Payment_Model_Method_Abstrac
    *   - invoice is created with status PAID;
    */
   public function capture(Varien_Object $payment, $amount) {
-    Mage::Log(Mage::helper('tpay')->__('Authorize and capture payment'), Zend_Log::NOTICE, $this->logFileName);
+    Mage::Log(Mage::helper('tpay')->__('log_info_authorize_capture'), Zend_Log::NOTICE, $this->logFileName);
     return $this;
   }
 
@@ -80,7 +80,8 @@ class Twispay_Tpay_Model_PaymentMethod extends Mage_Payment_Model_Method_Abstrac
    *  invoince viewing screen.
    */
   public function refund(Varien_Object $payment, $amount) {
-    Mage::Log(Mage::helper('tpay')->__('refund'), Zend_Log::NOTICE, $this->logFileName);
+    Mage::Log(Mage::helper('tpay')->__('log_info_refund_partial_refund'), Zend_Log::NOTICE, $this->logFileName);
+    Mage::Log(__FUNCTION__ . ': amount=' . print_r($amount, true), Zend_Log::DEBUG, $this->logFileName);
 
     /* Extract the transaction and transaction data. */
     $transactionId = $this->_getParentTransactionId($payment);
@@ -105,39 +106,41 @@ class Twispay_Tpay_Model_PaymentMethod extends Mage_Payment_Model_Method_Abstrac
     Mage::Log(__FUNCTION__ . ': url=' . print_r($url, true), Zend_Log::DEBUG, $this->logFileName);
 
     if ('' == $apiKey) {
-      Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__('Refund failed: Incomplete or missing configuration.'));
+      Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__('log_error_refund_failed_incomplete_missing_conf'));
       $this->_redirect('adminhtml/sales_order/view', $transactionData['orderId']);
     }
+
+    /* Create the DELETE data arguments. */
+    $postData = 'amount=' . $amount . '&' . 'message=' . 'Refund for order ' . $transactionData['orderId'];
 
     /* Make the server request. */
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "DELETE");
     curl_setopt($ch, CURLOPT_HTTPHEADER, ['accept: application/json', 'Authorization: ' . $apiKey]);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, ['amount' => $amount]);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, count($postData));
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
     /* Send the request. */
     $response = curl_exec($ch);
+    curl_close($ch);
     /* Decode the response. */
     $response = json_decode($response);
-    curl_close($ch);
 
-    Mage::Log(__FUNCTION__ . ': url=' . print_r($response, true), Zend_Log::DEBUG, $this->logFileName);
-    Mage::Log(__FUNCTION__ . ': url=' . print_r($response->code, true), Zend_Log::DEBUG, $this->logFileName);
-    Mage::Log(__FUNCTION__ . ': url=' . print_r($response->message, true), Zend_Log::DEBUG, $this->logFileName);
+    Mage::Log(__FUNCTION__ . ': response=' . print_r($response, true), Zend_Log::DEBUG, $this->logFileName);
     /* Check if the response code is 200 and message is 'Success'. */
     if ((200 == $response->code) && ('Success' == $response->message)) {
       /* Create a refund transaction */
       $payment->setTransactionId($response->data->transactionId);
       $payment->addTransaction(Mage_Sales_Model_Order_Payment_Transaction::TYPE_REFUND, null, false, 'OK');
-      // $payment->setTransactionAdditionalInfo( Mage_Sales_Model_Order_Payment_Transaction::RAW_DETAILS,array('key1'=>'value1','key2'=>'value2'));
       $payment->setTransactionAdditionalInfo( Mage_Sales_Model_Order_Payment_Transaction::RAW_DETAILS
                                             , [ 'orderId'               => $transactionData['orderId']
                                               , 'refundedTransactionId' => $transactionData['transactionId']
-                                              , 'transactionId'         => $response->data->transactionId]);
+                                              , 'transactionId'         => $response->data->transactionId
+                                              , 'amount'                => $amount]);
       $payment->setIsTransactionClosed(TRUE);
     } else {
-      Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__('Refund failed: Server communication error.'));
+      Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__('log_error_refund_failed_server_error', $response->code));
       $this->_redirect('adminhtml/sales_order/view', $transactionData['orderId']);
     }
 
@@ -150,7 +153,7 @@ class Twispay_Tpay_Model_PaymentMethod extends Mage_Payment_Model_Method_Abstrac
    */
   public function getOrderPlaceRedirectUrl() {
     $redirectUrl = Mage::getUrl('tpay/payment/redirect');
-    Mage::Log (Mage::helper('tpay')->__('Getting the redirect URL: %s', $redirectUrl), Zend_Log::NOTICE, $this->logFileName);
+    Mage::Log (Mage::helper('tpay')->__('log_info_redirect_url', $redirectUrl), Zend_Log::NOTICE, $this->logFileName);
     return $redirectUrl;
   }
 

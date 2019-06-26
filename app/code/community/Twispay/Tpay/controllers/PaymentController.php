@@ -16,7 +16,7 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
    */
   public function redirectAction(){
     try{
-      Mage::Log(__FUNCTION__ . ': Extract order details to send to Twispay server.', Zend_Log::NOTICE, $this->logFileName);
+      Mage::Log(__FUNCTION__ . ': ' . Mage::helper('tpay')->__('log_info_redirect_action'), Zend_Log::NOTICE, $this->logFileName);
       $this->loadLayout();
 
       /* Get latest orderId and extract the order. */
@@ -49,7 +49,7 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
       }
 
       if(('' == $siteId) || ('' == $apiKey)){
-        Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__('Payment failed: Incomplete or missing configuration.'));
+        Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__('log_error_payment_failed_incomplete_missing_conf'));
         $this->_redirect('checkout/onepage', ['_secure' => TRUE]);
       }
       Mage::Log(__FUNCTION__ . ': siteId=' . $siteId . ' apiKey=' . $apiKey . ' url=' . $url, Zend_Log::DEBUG, $this->logFileName);
@@ -162,7 +162,7 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
    * Function that processes the backUrl message of the server.
    */
   public function responseAction(){
-    Mage::Log(__FUNCTION__ . ': Process the backUrl response of the Twispay server.', Zend_Log::NOTICE, $this->logFileName);
+    Mage::Log(__FUNCTION__ . ': ' . Mage::helper('tpay')->__('log_info_response_action'), Zend_Log::NOTICE, $this->logFileName);
 
     $storeId = Mage::app()->getStore()->getStoreId();
     /* Read the configuration values. */
@@ -173,7 +173,7 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
     $apiKey = (1 == $liveMode) ? (Mage::getStoreConfig('payment/tpay/liveApiKey', $storeId)) : (Mage::getStoreConfig('payment/tpay/stagingApiKey', $storeId));
 
     if('' == $apiKey){
-      Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__('Payment failed: Incomplete or missing configuration.'));
+      Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__('log_error_payment_failed_incomplete_missing_conf'));
       $this->_redirect('checkout/onepage', ['_secure' => TRUE]);
     }
     Mage::Log(__FUNCTION__ . ': apiKey=' . $apiKey, Zend_Log::DEBUG, $this->logFileName);
@@ -187,8 +187,8 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
     }
     /* Check that the 'result' POST param exists. */
     if(NULL == $response){
-      Mage::log(__FUNCTION__ . Mage::helper('tpay')->__('NULL response received.'), Zend_Log::ERR, $this->logFileName);
-      Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__('NULL response received.'));
+      Mage::log(__FUNCTION__ . Mage::helper('tpay')->__('log_error_null_response'), Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
+      Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__('log_error_null_response'));
       $this->_redirect('checkout/onepage/failure', ['_secure' => TRUE]);
     }
 
@@ -196,8 +196,8 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
     $decrypted = Mage::helper('tpay')->twispay_tw_decrypt_message(/*tw_encryptedResponse*/$response, /*secretKey*/$apiKey);
 
     if(FALSE == $decrypted){
-      Mage::log(__FUNCTION__ . Mage::helper('tpay')->__('Failed to decript the response.'), Zend_Log::ERR, $this->logFileName);
-      Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__('Failed to decript the response.'));
+      Mage::log(__FUNCTION__ . Mage::helper('tpay')->__('log_error_decript_failed'), Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
+      Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__('log_error_decript_failed'));
       $this->_redirect('checkout/onepage/failure', ['_secure' => TRUE]);
     }
 
@@ -205,8 +205,8 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
     $orderValidation = Mage::helper('tpay')->twispay_tw_checkValidation($decrypted);
 
     if(FALSE == $orderValidation){
-      Mage::log(__FUNCTION__ . Mage::helper('tpay')->__('Failed to validate the response.'), Zend_Log::ERR, $this->logFileName);
-      Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__('Failed to validate the response.'));
+      Mage::log(__FUNCTION__ . Mage::helper('tpay')->__('log_error_validation_failed'), Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
+      Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__('log_error_validation_failed'));
       $this->_redirect('checkout/onepage/failure', ['_secure' => TRUE]);
     }
 
@@ -260,7 +260,7 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
    * Function that processes the IPN (Instant Payment Notification) message of the server.
    */
   public function serverAction(){
-    Mage::Log(__FUNCTION__ . ': Process the IPN response of the Twispay server.', Zend_Log::NOTICE, $this->logFileName);
+    Mage::Log(__FUNCTION__ . ': ' . Mage::helper('tpay')->__('log_info_server_action'), Zend_Log::NOTICE, $this->logFileName);
 
     $storeId = Mage::app()->getStore()->getStoreId();
     /* Read the configuration values. */
@@ -271,14 +271,14 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
     $apiKey = (1 == $liveMode) ? (Mage::getStoreConfig('payment/tpay/liveApiKey', $storeId)) : (Mage::getStoreConfig('payment/tpay/stagingApiKey', $storeId));
 
     if('' == $apiKey){
-      Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__('Payment failed: Incomplete or missing configuration.'));
+      Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__('log_error_payment_failed_incomplete_missing_conf'));
       $this->_redirect('checkout/onepage', ['_secure' => TRUE]);
     }
     Mage::Log(__FUNCTION__ . ': apiKey=' . $apiKey, Zend_Log::DEBUG, $this->logFileName);
 
     /* Check if we received a response. */
     if( (FALSE == isset($_POST['opensslResult'])) && (FALSE == isset($_POST['result'])) ) {
-      Mage::log(__FUNCTION__ .  Mage::helper('tpay')->__('NULL response received.'), Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
+      Mage::log(__FUNCTION__ .  Mage::helper('tpay')->__('log_error_null_response'), Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
       return;
     }
 
@@ -289,7 +289,7 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
     $decrypted = Mage::helper('tpay')->twispay_tw_decrypt_message(/*tw_encryptedResponse*/$response, /*secretKey*/$apiKey);
 
     if(FALSE == $decrypted){
-      Mage::log(__FUNCTION__ . Mage::helper('tpay')->__('Failed to decript the response.'), Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
+      Mage::log(__FUNCTION__ . Mage::helper('tpay')->__('log_error_decript_failed'), Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
       return;
     }
 
@@ -297,7 +297,7 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
     $orderValidation = Mage::helper('tpay')->twispay_tw_checkValidation($decrypted);
 
     if(TRUE !== $orderValidation){
-      Mage::log(__FUNCTION__ . Mage::helper('tpay')->__('Failed to validate the response.'), Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
+      Mage::log(__FUNCTION__ . Mage::helper('tpay')->__('log_error_validation_failed'), Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
       return;
     }
 
