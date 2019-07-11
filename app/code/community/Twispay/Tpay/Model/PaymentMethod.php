@@ -152,7 +152,7 @@ class Twispay_Tpay_Model_PaymentMethod extends Mage_Payment_Model_Method_Abstrac
    * Construct the redirect URL.
    */
   public function getOrderPlaceRedirectUrl() {
-    $redirectUrl = Mage::getUrl('tpay/payment/redirect');
+    $redirectUrl = Mage::getUrl('tpay/payment/purchase');
     Mage::Log (Mage::helper('tpay')->__('log_info_redirect_url', $redirectUrl), Zend_Log::NOTICE, $this->logFileName);
     return $redirectUrl;
   }
@@ -167,16 +167,24 @@ class Twispay_Tpay_Model_PaymentMethod extends Mage_Payment_Model_Method_Abstrac
      */
     public function validateRecurringProfile(Mage_Payment_Model_Recurring_Profile $profile){
       Mage::Log(Mage::helper('tpay')->__('validateRecurringProfile'), Zend_Log::NOTICE, $this->logFileName);
+      return $this;
     }
 
     /**
-     * Submit to the gateway
+     * Function that redirects to the action that constructs the redirect form.
      *
      * @param Mage_Payment_Model_Recurring_Profile $profile
      * @param Mage_Payment_Model_Info $paymentInfo
      */
     public function submitRecurringProfile(Mage_Payment_Model_Recurring_Profile $profile, Mage_Payment_Model_Info $paymentInfo){
       Mage::Log(Mage::helper('tpay')->__('submitRecurringProfile'), Zend_Log::NOTICE, $this->logFileName);
+
+      /* Construct the redirect URL. */
+      $redirectUrl = Mage::getUrl('tpay/payment/subscription', ['_query' => ['subscriptionId' => $profile->getId()]]);
+
+      /* Redirect the user. */
+      Mage::app()->getResponse()->setRedirect($redirectUrl)->sendResponse();
+      return $this;
     }
 
     /**
@@ -187,6 +195,7 @@ class Twispay_Tpay_Model_PaymentMethod extends Mage_Payment_Model_Method_Abstrac
      */
     public function getRecurringProfileDetails($referenceId, Varien_Object $result){
       Mage::Log(Mage::helper('tpay')->__('getRecurringProfileDetails'), Zend_Log::NOTICE, $this->logFileName);
+      return $this;
     }
 
     /**
@@ -206,6 +215,7 @@ class Twispay_Tpay_Model_PaymentMethod extends Mage_Payment_Model_Method_Abstrac
      */
     public function updateRecurringProfile(Mage_Payment_Model_Recurring_Profile $profile){
       Mage::Log(Mage::helper('tpay')->__('updateRecurringProfile'), Zend_Log::NOTICE, $this->logFileName);
+      return $this;
     }
 
     /**
@@ -215,5 +225,6 @@ class Twispay_Tpay_Model_PaymentMethod extends Mage_Payment_Model_Method_Abstrac
      */
     public function updateRecurringProfileStatus(Mage_Payment_Model_Recurring_Profile $profile){
       Mage::Log(Mage::helper('tpay')->__('updateRecurringProfileStatus'), Zend_Log::NOTICE, $this->logFileName);
+      return $this;
     }
 }

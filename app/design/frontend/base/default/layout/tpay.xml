@@ -12,4 +12,10 @@
             <block type="checkout/onepage_failure" name="checkout.failure" template="tpay/checkout/failure.phtml"/>
         </reference>
     </checkout_onepage_failure>
+
+    <tpay_payment_subscription>
+        <reference name="content">
+            <block type="core/template" name="lesson12" template="tpay/redirect.phtml" output="toHtml"/>  
+        </reference>
+    </tpay_payment_subscription>
 </layout>
