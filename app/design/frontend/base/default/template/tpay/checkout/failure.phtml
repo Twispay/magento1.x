@@ -6,15 +6,15 @@
 <?php
   if(NULL === Mage::getSingleton('core/session')->getContactEmail()){
     if(0 == Mage::helper('checkout/cart')->getItemsCount()){
-      ?> <p><?= Mage::helper('tpay')->__('log_error_new_order_admin', $this->getRealOrderId(), Mage::getBaseUrl(Mage_Core_Model_Store::URL_TYPE_WEB)) ?></p> <?php
+      ?> <p><?= Mage::helper('tpay')->__('The payment could not be processed for order %s. Please <a href="%s">make</a> a new order or contact the website administrator.', $this->getRealOrderId(), Mage::getBaseUrl(Mage_Core_Model_Store::URL_TYPE_WEB)) ?></p> <?php
     } else {
-      ?> <p><?= Mage::helper('tpay')->__('log_error_admin', $this->getRealOrderId(), Mage::helper('core')->quoteEscape($this->getContinueShoppingUrl())) ?></p> <?php
+      ?> <p><?= Mage::helper('tpay')->__('The payment could not be processed for order %s. Please <a href="%s">try again</a> or contact the website administrator.', $this->getRealOrderId(), Mage::helper('core')->quoteEscape($this->getContinueShoppingUrl())) ?></p> <?php
     }
   } else {
     if(0 == Mage::helper('checkout/cart')->getItemsCount()){
-      ?> <p><?= Mage::helper('tpay')->__('log_error_new_order_admin_url', $this->getRealOrderId(), Mage::getBaseUrl(Mage_Core_Model_Store::URL_TYPE_WEB), Mage::getSingleton('core/session')->getContactEmail()) ?></p> <?php
+      ?> <p><?= Mage::helper('tpay')->__('The payment could not be processed for order %s. Please <a href="%s">make</a> a new order or contact the website administrator._url', $this->getRealOrderId(), Mage::getBaseUrl(Mage_Core_Model_Store::URL_TYPE_WEB), Mage::getSingleton('core/session')->getContactEmail()) ?></p> <?php
     } else {
-      ?> <p><?= Mage::helper('tpay')->__('log_error_admin_url', $this->getRealOrderId(), Mage::helper('core')->quoteEscape($this->getContinueShoppingUrl()), Mage::getSingleton('core/session')->getContactEmail()) ?></p> <?php
+      ?> <p><?= Mage::helper('tpay')->__('The payment could not be processed for order %s. Please <a href="%s">try again</a> or contact the website administrator._url', $this->getRealOrderId(), Mage::helper('core')->quoteEscape($this->getContinueShoppingUrl()), Mage::getSingleton('core/session')->getContactEmail()) ?></p> <?php
     }
 
     /* Remove session variable. */

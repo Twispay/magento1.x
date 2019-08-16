@@ -11,11 +11,20 @@
                     <show_in_website>0</show_in_website>
                     <show_in_store>1</show_in_store>
                     <fields>
+                        <limitation translate="label">
+                            <label>Limitation:</label>
+                            <frontend_type>label</frontend_type>
+                            <sort_order>3</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment><![CDATA[Trial period can only have one cycle and therefore only one payment. If multiple trial cycles are configured, the periods and payments will be summed up and only one payment will be performed.]]></comment>
+                        </limitation>
                         <liveMode translate="label">
                             <label>Live mode</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
-                            <sort_order>3</sort_order>
+                            <sort_order>4</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_website>0</show_in_website>
                             <show_in_store>1</show_in_store>
@@ -24,7 +33,7 @@
                         <stagingSiteId translate="label">
                             <label>Staging Site ID</label>
                             <frontend_type>text</frontend_type>
-                            <sort_order>4</sort_order>
+                            <sort_order>5</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_website>0</show_in_website>
                             <show_in_store>1</show_in_store>
@@ -34,7 +43,7 @@
                         <stagingApiKey translate="label">
                             <label>Staging Private Key</label>
                             <frontend_type>text</frontend_type>
-                            <sort_order>5</sort_order>
+                            <sort_order>6</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_website>0</show_in_website>
                             <show_in_store>1</show_in_store>
@@ -44,7 +53,7 @@
                         <liveSiteId translate="label">
                             <label>Live Site ID</label>
                             <frontend_type>text</frontend_type>
-                            <sort_order>4</sort_order>
+                            <sort_order>5</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_website>0</show_in_website>
                             <show_in_store>1</show_in_store>
@@ -54,7 +63,7 @@
                         <liveApiKey translate="label">
                             <label>Live Private Key</label>
                             <frontend_type>text</frontend_type>
-                            <sort_order>5</sort_order>
+                            <sort_order>6</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_website>0</show_in_website>
                             <show_in_store>1</show_in_store>
@@ -64,7 +73,7 @@
                         <paymentServer translate="label">
                             <label>Server-to-server notification URL</label>
                             <frontend_type>label</frontend_type>
-                            <sort_order>6</sort_order>
+                            <sort_order>7</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_website>0</show_in_website>
                             <show_in_store>1</show_in_store>
@@ -73,7 +82,7 @@
                         <contactEmail translate="label">
                             <label>Contact email(Optional)</label>
                             <frontend_type>text</frontend_type>
-                            <sort_order>7</sort_order>
+                            <sort_order>8</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_website>0</show_in_website>
                             <show_in_store>1</show_in_store>

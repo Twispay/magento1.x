@@ -84,5 +84,16 @@
                 </tpay>
             </updates>
         </layout>
+        <events>            
+            <checkout_submit_all_after>
+                <observers>
+                    <Twispay_Tpay_Customevent>
+                        <type>singleton</type>
+                        <class>Twispay_Tpay_Model_Observer</class>
+                        <method>checkoutSubmitAllFunction</method>
+                    </Twispay_Tpay_Customevent>
+                </observers>
+            </checkout_submit_all_after>
+        </events>
     </frontend>
 </config>

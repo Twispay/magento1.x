@@ -8,9 +8,9 @@
 </div>
 
 <!-- Hidden form to submit -->
-<form action="<?= $url; ?>" method="POST" accept-charset="UTF-8" id="twispay_payment_form">
-  <input type="hidden" name="jsonRequest" value="<?= $jsonRequest; ?>">
-  <input type="hidden" name="checksum" value="<?= $checksum; ?>">
+<form action="<?= Mage::registry('url'); ?>" method="POST" accept-charset="UTF-8" id="twispay_payment_form">
+  <input type="hidden" name="jsonRequest" value="<?= Mage::registry('jsonRequest'); ?>">
+  <input type="hidden" name="checksum" value="<?= Mage::registry('checksum'); ?>">
 </form>
 
 <script type="text/javascript">document.getElementById("twispay_payment_form").submit();</script>

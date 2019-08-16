@@ -1,7 +1,7 @@
 <?php
 
 class Twispay_Tpay_Model_PaymentMethod extends Mage_Payment_Model_Method_Abstract
-                                       implements Mage_Payment_Model_Recurring_Profile_MethodInterface{
+                                       implements Mage_Payment_Model_Recurring_Profile_MethodInterface {
   private $logFileName = 'tpay.log';
 
   /* Availability options */
@@ -53,7 +53,7 @@ class Twispay_Tpay_Model_PaymentMethod extends Mage_Payment_Model_Method_Abstrac
    *   - order comment is added automatically for authorization;
    */
   public function authorize(Varien_Object $payment, $amount) {
-    Mage::Log(Mage::helper('tpay')->__('log_info_authorize_payment'), Zend_Log::NOTICE, $this->logFileName);
+    Mage::Log(Mage::helper('tpay')->__(' Authorize payment'), Zend_Log::DEBUG, $this->logFileName);
     return $this;
   }
 
@@ -70,17 +70,15 @@ class Twispay_Tpay_Model_PaymentMethod extends Mage_Payment_Model_Method_Abstrac
    *   - invoice is created with status PAID;
    */
   public function capture(Varien_Object $payment, $amount) {
-    Mage::Log(Mage::helper('tpay')->__('log_info_authorize_capture'), Zend_Log::NOTICE, $this->logFileName);
+    Mage::Log(Mage::helper('tpay')->__(' Authorize and capture payment'), Zend_Log::DEBUG, $this->logFileName);
     return $this;
   }
 
 
   /**
-   * Function that is called when the 'Credit Memo' button from the 
-   *  invoince viewing screen.
+   * Function that is called when a refund is done.
    */
   public function refund(Varien_Object $payment, $amount) {
-    Mage::Log(Mage::helper('tpay')->__('log_info_refund_partial_refund'), Zend_Log::NOTICE, $this->logFileName);
     Mage::Log(__FUNCTION__ . ': amount=' . print_r($amount, true), Zend_Log::DEBUG, $this->logFileName);
 
     /* Extract the transaction and transaction data. */
@@ -88,27 +86,19 @@ class Twispay_Tpay_Model_PaymentMethod extends Mage_Payment_Model_Method_Abstrac
     $transaction = $payment->getTransaction($transactionId);
     $transactionData = $transaction->getData()['additional_information']['raw_details_info'];
 
-    $storeId = $transactionData['storeId'];
-    Mage::Log(__FUNCTION__ . ': storeId=' . print_r($storeId, true), Zend_Log::DEBUG, $this->logFileName);
-    /* Read the configuration values. */
-    $liveMode = Mage::getStoreConfig('payment/tpay/liveMode', $storeId);
-    Mage::Log(__FUNCTION__ . ': liveMode=' . print_r($liveMode, true), Zend_Log::DEBUG, $this->logFileName);
-
-    /* Check if live mode is active. */
-    if (1 == $liveMode) {
-      $apiKey = Mage::getStoreConfig('payment/tpay/liveApiKey', $storeId);
-      $url = 'https://api.twispay.com/transaction/' . $transactionId;
-    } else {
-      $apiKey = Mage::getStoreConfig('payment/tpay/stagingApiKey', $storeId);
-      $url = 'https://api-stage.twispay.com/transaction/' . $transactionId;
-    }
+    /* Get the config values. */
+    $apiKey = Mage::helper('tpay')->getApiKey();
     Mage::Log(__FUNCTION__ . ': apiKey=' . print_r($apiKey, true), Zend_Log::DEBUG, $this->logFileName);
+    $url = Mage::helper('tpay')->getApiUrl();
     Mage::Log(__FUNCTION__ . ': url=' . print_r($url, true), Zend_Log::DEBUG, $this->logFileName);
 
     if ('' == $apiKey) {
-      Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__('log_error_refund_failed_incomplete_missing_conf'));
+      Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__(' Refund failed: Incomplete or missing configuration.'));
       $this->_redirect('adminhtml/sales_order/view', $transactionData['orderId']);
     }
+
+    /* Create the URL. */
+    $url = $url . '/transaction/' . $transactionId;
 
     /* Create the DELETE data arguments. */
     $postData = 'amount=' . $amount . '&' . 'message=' . 'Refund for order ' . $transactionData['orderId'];
@@ -140,7 +130,7 @@ class Twispay_Tpay_Model_PaymentMethod extends Mage_Payment_Model_Method_Abstrac
                                               , 'amount'                => $amount]);
       $payment->setIsTransactionClosed(TRUE);
     } else {
-      Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__('log_error_refund_failed_server_error', $response->code));
+      Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__(' Refund failed: Server returned error: %s', $response->code));
       $this->_redirect('adminhtml/sales_order/view', $transactionData['orderId']);
     }
 
@@ -153,7 +143,7 @@ class Twispay_Tpay_Model_PaymentMethod extends Mage_Payment_Model_Method_Abstrac
    */
   public function getOrderPlaceRedirectUrl() {
     $redirectUrl = Mage::getUrl('tpay/payment/purchase');
-    Mage::Log (Mage::helper('tpay')->__('log_info_redirect_url', $redirectUrl), Zend_Log::NOTICE, $this->logFileName);
+    Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' Getting the redirect URL: %s', $redirectUrl), Zend_Log::DEBUG, $this->logFileName);
     return $redirectUrl;
   }
 
@@ -166,7 +156,7 @@ class Twispay_Tpay_Model_PaymentMethod extends Mage_Payment_Model_Method_Abstrac
      * @throws Mage_Core_Exception
      */
     public function validateRecurringProfile(Mage_Payment_Model_Recurring_Profile $profile){
-      Mage::Log(Mage::helper('tpay')->__('validateRecurringProfile'), Zend_Log::NOTICE, $this->logFileName);
+      Mage::Log(__FUNCTION__, Zend_Log::DEBUG, $this->logFileName);
       return $this;
     }
 
@@ -177,14 +167,7 @@ class Twispay_Tpay_Model_PaymentMethod extends Mage_Payment_Model_Method_Abstrac
      * @param Mage_Payment_Model_Info $paymentInfo
      */
     public function submitRecurringProfile(Mage_Payment_Model_Recurring_Profile $profile, Mage_Payment_Model_Info $paymentInfo){
-      Mage::Log(Mage::helper('tpay')->__('submitRecurringProfile'), Zend_Log::NOTICE, $this->logFileName);
-
-      /* Construct the redirect URL. */
-      $redirectUrl = Mage::getUrl('tpay/payment/subscription', ['_query' => ['subscriptionId' => $profile->getId()]]);
-
-      /* Redirect the user. */
-      Mage::app()->getResponse()->setRedirect($redirectUrl)->sendResponse();
-      return $this;
+      Mage::Log(__FUNCTION__, Zend_Log::DEBUG, $this->logFileName);
     }
 
     /**
@@ -194,8 +177,7 @@ class Twispay_Tpay_Model_PaymentMethod extends Mage_Payment_Model_Method_Abstrac
      * @param Varien_Object $result
      */
     public function getRecurringProfileDetails($referenceId, Varien_Object $result){
-      Mage::Log(Mage::helper('tpay')->__('getRecurringProfileDetails'), Zend_Log::NOTICE, $this->logFileName);
-      return $this;
+      Mage::Log(__FUNCTION__, Zend_Log::DEBUG, $this->logFileName);
     }
 
     /**
@@ -204,8 +186,8 @@ class Twispay_Tpay_Model_PaymentMethod extends Mage_Payment_Model_Method_Abstrac
      * @return bool
      */
     public function canGetRecurringProfileDetails(){
-      Mage::Log(Mage::helper('tpay')->__('canGetRecurringProfileDetails'), Zend_Log::NOTICE, $this->logFileName);
-      return TRUE;
+      Mage::Log(__FUNCTION__, Zend_Log::DEBUG, $this->logFileName);
+      return FALSE;
     }
 
     /**
@@ -214,8 +196,7 @@ class Twispay_Tpay_Model_PaymentMethod extends Mage_Payment_Model_Method_Abstrac
      * @param Mage_Payment_Model_Recurring_Profile $profile
      */
     public function updateRecurringProfile(Mage_Payment_Model_Recurring_Profile $profile){
-      Mage::Log(Mage::helper('tpay')->__('updateRecurringProfile'), Zend_Log::NOTICE, $this->logFileName);
-      return $this;
+      Mage::Log(__FUNCTION__, Zend_Log::DEBUG, $this->logFileName);
     }
 
     /**
@@ -224,7 +205,16 @@ class Twispay_Tpay_Model_PaymentMethod extends Mage_Payment_Model_Method_Abstrac
      * @param Mage_Payment_Model_Recurring_Profile $profile
      */
     public function updateRecurringProfileStatus(Mage_Payment_Model_Recurring_Profile $profile){
-      Mage::Log(Mage::helper('tpay')->__('updateRecurringProfileStatus'), Zend_Log::NOTICE, $this->logFileName);
-      return $this;
+      Mage::Log(__FUNCTION__, Zend_Log::DEBUG, $this->logFileName);
+
+      switch ($profile->getNewState()) {
+        case Mage_Sales_Model_Recurring_Profile::STATE_CANCELED:
+          /* Cancel the recurring profile. */
+          Mage::helper('tpay')->cancelRecurringProfile($profile);
+        break;
+
+        default:
+          Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' New state: '), Zend_Log::DEBUG, $this->logFileName);
+      }
     }
 }
