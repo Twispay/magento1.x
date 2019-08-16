@@ -38,6 +38,30 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
 
   /************************** Inner functions START **************************/
   /**
+   * Function that changes the state of an order
+   *  and adds history comment.
+   *
+   * @param order: The purchase order to update.
+   * @param state: The state to be set to the order.
+   * @param status: The status to be set to the order.
+   * @param comment: The comment to add to that status change.
+   */
+  private function setOrderState($order, $state, $status, $comment){
+    /* Set the state of the order. */
+    $order->setData('state', $state);
+    $order->setStatus($status);
+
+    /* Add history comment. */
+    $history = $order->addStatusHistoryComment($comment);
+    /* For backwards compatibility. */
+    $history->setIsCustomerNotified(/*isCustomerNotified*/FALSE);
+
+    /* Save changes. */
+    $order->save();
+  }
+
+
+  /**
    * Update the status of a purchase order according to the received server status.
    *
    * @param purchase: The purchase order for which to update the status.
@@ -51,10 +75,10 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
     switch ($serverStatus) {
       case $this->resultStatuses['COMPLETE_FAIL']:
         /* Set order status. */
-        $purchase->setState(Mage_Sales_Model_Order::STATE_CANCELED, true);
-        $purchase->setStatus(Mage_Sales_Model_Order::STATE_CANCELED);
-        $purchase->addStatusToHistory($purchase->getStatus(), Mage::helper('tpay')->__(' Order #%s canceled as payment for transaction #%s failed.', $purchase->getIncrementId(), $transactionId));
-        $purchase->save();
+        $this->setOrderState( $purchase
+                            , Mage_Sales_Model_Order::STATE_CANCELED
+                            , Mage_Sales_Model_Order::STATE_CANCELED
+                            , Mage::helper('tpay')->__(' Order #%s canceled as payment for transaction #%s failed.', $purchase->getIncrementId(), $transactionId));
 
         Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status failed for order ID: ') . $purchase->getIncrementId(), Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
         Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__(' Order #%s canceled as payment for transaction #%s failed.', $purchase->getIncrementId(), $transactionId));
@@ -63,10 +87,10 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
 
       case $this->resultStatuses['THREE_D_PENDING']:
         /* Set order status. */
-        $purchase->setState(Mage_Sales_Model_Order::STATE_PENDING_PAYMENT, true);
-        $purchase->setStatus(Mage_Sales_Model_Order::STATE_PENDING_PAYMENT);
-        $purchase->addStatusToHistory($purchase->getStatus(), Mage::helper('tpay')->__(' Payment pending for transaction #%s, order #%s.', $transactionId, $purchase->getIncrementId()));
-        $purchase->save();
+        $this->setOrderState( $purchase
+                            , Mage_Sales_Model_Order::STATE_PENDING_PAYMENT
+                            , Mage_Sales_Model_Order::STATE_PENDING_PAYMENT
+                            , Mage::helper('tpay')->__(' Order #%s pending as payment for transaction #%s is pending.', $purchase->getIncrementId(), $transactionId));
 
         Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status three-d-pending for order ID: ') . $purchase->getIncrementId(), Zend_Log::WARNING , $this->logFileName, /*forceLog*/TRUE);
         Mage::getSingleton('core/session')->addWarning(Mage::helper('tpay')->__(' Payment pending for transaction #%s, order #%s.', $transactionId, $purchase->getIncrementId()));
@@ -76,10 +100,10 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
       case $this->resultStatuses['IN_PROGRESS']:
       case $this->resultStatuses['COMPLETE_OK']:
         /* Set order status. */
-        $purchase->setState(Mage_Sales_Model_Order::STATE_PROCESSING, true);
-        $purchase->setStatus(Mage_Sales_Model_Order::STATE_PROCESSING);
-        $purchase->addStatusToHistory($purchase->getStatus(), Mage::helper('tpay')->__(' Payment successful for transaction #%s, order #%s.', $transactionId, $purchase->getIncrementId()));
-        $purchase->save();
+        $this->setOrderState( $purchase
+                            , Mage_Sales_Model_Order::STATE_PROCESSING
+                            , Mage_Sales_Model_Order::STATE_PROCESSING
+                            , Mage::helper('tpay')->__(' Order #%s processing as payment for transaction #%s is successful.', $purchase->getIncrementId(), $transactionId));
 
         Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status complete-ok for order ID: ') . $purchase->getIncrementId(), Zend_Log::NOTICE , $this->logFileName);
         Mage::getSingleton('core/session')->addSuccess(Mage::helper('tpay')->__(' Payment successful for transaction #%s, order #%s.', $transactionId, $purchase->getIncrementId()));
@@ -113,11 +137,11 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
         $profile->setReferenceId($transactionId);
         $profile->save();
 
-        /* Set order status. */
-        $recurringProfileChildOrder->setState(Mage_Sales_Model_Order::STATE_CANCELED, true);
-        $recurringProfileChildOrder->setStatus(Mage_Sales_Model_Order::STATE_CANCELED);
-        $recurringProfileChildOrder->addStatusToHistory($recurringProfileChildOrder->getStatus(), Mage::helper('tpay')->__(' Order #%s canceled as payment for transaction #%s failed.', $profile->getId(), $transactionId));
-        $recurringProfileChildOrder->save();
+        /* Set recurring profile child order status. */
+        $this->setOrderState( $recurringProfileChildOrder
+                            , Mage_Sales_Model_Order::STATE_CANCELED
+                            , Mage_Sales_Model_Order::STATE_CANCELED
+                            , Mage::helper('tpay')->__(' Order #%s canceled as payment for transaction #%s failed.', $recurringProfileChildOrder->getIncrementId(), $transactionId));
 
         Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status failed for order ID: ') . $profile->getId(), Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
         Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__(' Order #%s canceled as payment for transaction #%s failed.', $profile->getId(), $transactionId));
@@ -130,11 +154,11 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
         $profile->setReferenceId($transactionId);
         $profile->save();
 
-        /* Set order status. */
-        $recurringProfileChildOrder->setState(Mage_Sales_Model_Order::STATE_PENDING_PAYMENT, true);
-        $recurringProfileChildOrder->setStatus(Mage_Sales_Model_Order::STATE_PENDING_PAYMENT);
-        $recurringProfileChildOrder->addStatusToHistory($recurringProfileChildOrder->getStatus(), Mage::helper('tpay')->__(' Payment pending for transaction #%s, order #%s.', $transactionId, $profile->getId()));
-        $recurringProfileChildOrder->save();
+        /* Set recurring profile child order status. */
+        $this->setOrderState( $recurringProfileChildOrder
+                            , Mage_Sales_Model_Order::STATE_PENDING_PAYMENT
+                            , Mage_Sales_Model_Order::STATE_PENDING_PAYMENT
+                            , Mage::helper('tpay')->__(' Order #%s pending as payment for transaction #%s is pending.', $recurringProfileChildOrder->getIncrementId(), $transactionId));
 
         Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status three-d-pending for order ID: ') . $profile->getId(), Zend_Log::WARNING , $this->logFileName, /*forceLog*/TRUE);
         Mage::getSingleton('core/session')->addWarning(Mage::helper('tpay')->__(' Payment pending for transaction #%s, order #%s.', $transactionId, $profile->getId()));
@@ -148,11 +172,11 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
         $profile->setReferenceId($transactionId);
         $profile->save();
 
-        /* Set order status. */
-        $recurringProfileChildOrder->setState(Mage_Sales_Model_Order::STATE_PROCESSING, true);
-        $recurringProfileChildOrder->setStatus(Mage_Sales_Model_Order::STATE_PROCESSING);
-        $recurringProfileChildOrder->addStatusToHistory($recurringProfileChildOrder->getStatus(), Mage::helper('tpay')->__(' Payment successful for transaction #%s, order #%s.', $transactionId, $profile->getId()));
-        $recurringProfileChildOrder->save();
+        /* Set recurring profile child order status. */
+        $this->setOrderState( $recurringProfileChildOrder
+                            , Mage_Sales_Model_Order::STATE_PROCESSING
+                            , Mage_Sales_Model_Order::STATE_PROCESSING
+                            , Mage::helper('tpay')->__(' Order #%s processing as payment for transaction #%s is successful.', $recurringProfileChildOrder->getIncrementId(), $transactionId));
 
         Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status complete-ok for order ID: ') . $profile->getId(), Zend_Log::NOTICE , $this->logFileName);
         Mage::getSingleton('core/session')->addSuccess(Mage::helper('tpay')->__(' Payment successful for transaction #%s, order #%s.', $transactionId, $profile->getId()));
@@ -181,10 +205,10 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
     switch ($serverStatus) {
       case $this->resultStatuses['COMPLETE_FAIL']:
         /* Set order status. */
-        $purchase->setState(Mage_Sales_Model_Order::STATE_CANCELED, true);
-        $purchase->setStatus(Mage_Sales_Model_Order::STATE_CANCELED);
-        $purchase->addStatusToHistory($purchase->getStatus(), 'Payment failed for order with reference ' . $transactionId);
-        $purchase->save();
+        $this->setOrderState( $purchase
+                            , Mage_Sales_Model_Order::STATE_CANCELED
+                            , Mage_Sales_Model_Order::STATE_CANCELED
+                            , Mage::helper('tpay')->__(' Order #%s canceled as payment for transaction #%s failed.', $purchase->getIncrementId(), $transactionId));
 
         Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status failed for order ID: ') . $purchase->getIncrementId(), Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
         return FALSE;
@@ -192,10 +216,17 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
 
       case $this->resultStatuses['REFUND_OK']:
         /* Set order status. */
-        $purchase->setState(Mage_Sales_Model_Order::STATE_CLOSED, true);
-        $purchase->setStatus(Mage_Sales_Model_Order::STATE_CLOSED);
-        $purchase->addStatusToHistory($purchase->getStatus(), 'Payment refunded for order with reference ' . $transactionId);
-        $purchase->save();
+        if($purchase->getTotalPaid() > $purchase->getTotalRefunded()){
+          $this->setOrderState( $purchase
+                              , Mage_Sales_Model_Order::STATE_PROCESSING
+                              , Mage_Sales_Model_Order::STATE_PROCESSING
+                              , Mage::helper('tpay')->__(' Order #%s processing as payment for transaction #%s is partially refunded.', $purchase->getIncrementId(), $transactionId));
+        } else {
+          $this->setOrderState( $purchase
+                              , Mage_Sales_Model_Order::STATE_CLOSED
+                              , Mage_Sales_Model_Order::STATE_CLOSED
+                              , Mage::helper('tpay')->__(' Order #%s closed as payment for transaction #%s has been refunded.', $purchase->getIncrementId(), $transactionId));
+        }
 
         Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status refund-ok for order ID: ') . $purchase->getIncrementId(), Zend_Log::NOTICE , $this->logFileName);
         return TRUE;
@@ -205,10 +236,10 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
       case $this->resultStatuses['VOID_OK']:
       case $this->resultStatuses['CHARGE_BACK']:
         /* Set order status. */
-        $purchase->setState(Mage_Sales_Model_Order::STATE_CANCELED, true);
-        $purchase->setStatus(Mage_Sales_Model_Order::STATE_CANCELED);
-        $purchase->addStatusToHistory($purchase->getStatus(), 'Payment canceled for order with reference ' . $transactionId);
-        $purchase->save();
+        $this->setOrderState( $purchase
+                            , Mage_Sales_Model_Order::STATE_CANCELED
+                            , Mage_Sales_Model_Order::STATE_CANCELED
+                            , Mage::helper('tpay')->__(' Order #%s canceled as payment for transaction #%s has been canceled.', $purchase->getIncrementId(), $transactionId));
 
         Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status cancel-ok for order ID: ') . $purchase->getIncrementId(), Zend_Log::NOTICE , $this->logFileName);
         return FALSE;
@@ -216,10 +247,10 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
 
       case $this->resultStatuses['THREE_D_PENDING']:
         /* Set order status. */
-        $purchase->setState(Mage_Sales_Model_Order::STATE_PENDING_PAYMENT, true);
-        $purchase->setStatus(Mage_Sales_Model_Order::STATE_PENDING_PAYMENT);
-        $purchase->addStatusToHistory($purchase->getStatus(), 'Payment pending for order with reference ' . $transactionId);
-        $purchase->save();
+        $this->setOrderState( $purchase
+                            , Mage_Sales_Model_Order::STATE_PENDING_PAYMENT
+                            , Mage_Sales_Model_Order::STATE_PENDING_PAYMENT
+                            , Mage::helper('tpay')->__(' Order #%s pending as payment for transaction #%s is pending.', $purchase->getIncrementId(), $transactionId));
 
         Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status three-d-pending for order ID: ') . $purchase->getIncrementId(), Zend_Log::WARNING , $this->logFileName, /*forceLog*/TRUE);
         return FALSE;
@@ -228,10 +259,10 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
       case $this->resultStatuses['IN_PROGRESS']:
       case $this->resultStatuses['COMPLETE_OK']:
         /* Set order status. */
-        $purchase->setState(Mage_Sales_Model_Order::STATE_PROCESSING, true);
-        $purchase->setStatus(Mage_Sales_Model_Order::STATE_PROCESSING);
-        $purchase->addStatusToHistory($purchase->getStatus(), 'Payment successful for order with reference ' . $transactionId);
-        $purchase->save();
+        $this->setOrderState( $purchase
+                            , Mage_Sales_Model_Order::STATE_PROCESSING
+                            , Mage_Sales_Model_Order::STATE_PROCESSING
+                            , Mage::helper('tpay')->__(' Order #%s processing as payment for transaction #%s is successful.', $purchase->getIncrementId(), $transactionId));
 
         Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status complete-ok for order ID: ') . $purchase->getIncrementId(), Zend_Log::NOTICE , $this->logFileName);
         return TRUE;
@@ -401,6 +432,61 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
     }
   }
   /************************** Config functions END **************************/
+
+
+
+  /************************** Api START **************************/
+  /**
+   * Function that extracts the details of a transaction
+   *  from the Twisplay platform.
+   */
+  public function getTransactionDetails($transactionId){
+    /* Get the config values. */
+    $apiKey = Mage::helper('tpay')->getApiKey();
+    Mage::Log(__FUNCTION__ . ': apiKey=' . print_r($apiKey, true), Zend_Log::DEBUG, $this->logFileName);
+    $url = Mage::helper('tpay')->getApiUrl();
+    Mage::Log(__FUNCTION__ . ': url=' . print_r($url, true), Zend_Log::DEBUG, $this->logFileName);
+
+    if ('' == $apiKey) {
+      Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' Transaction details extraction failed: Incomplete or missing configuration.'), Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
+      return [];
+    }
+
+    /* Create the URL. */
+    $url = $url . '/transaction/' . $transactionId;
+
+    /* Make the server request. */
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "GET");
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['accept: application/json', 'Authorization: ' . $apiKey]);
+    /* Send the request. */
+    $response = curl_exec($ch);
+    curl_close($ch);
+    /* Decode the response. */
+    $response = json_decode($response);
+
+    Mage::Log(__FUNCTION__ . ': response=' . print_r($response, true), Zend_Log::DEBUG, $this->logFileName);
+    /* Check if the response code is 200 and message is 'Success'. */
+    if ((200 == $response->code) && ('Success' == $response->message)) {
+      /* Create a refund transaction */
+      // $payment->setTransactionId($response->data->transactionId);
+      // $payment->addTransaction(Mage_Sales_Model_Order_Payment_Transaction::TYPE_REFUND, null, false, 'OK');
+      // $payment->setTransactionAdditionalInfo( Mage_Sales_Model_Order_Payment_Transaction::RAW_DETAILS
+      //                                       , [ 'orderId'               => $transactionData['orderId']
+      //                                         , 'refundedTransactionId' => $transactionData['transactionId']
+      //                                         , 'transactionId'         => $response->data->transactionId
+      //                                         , 'amount'                => $amount]);
+      // $payment->setIsTransactionClosed(TRUE);
+    } else {
+      Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' Transaction details extraction failed: Server returned error: %s'), Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
+      return [];
+    }
+
+    return $response->data;
+  }
+  /************************** Api END **************************/
 
 
 
@@ -681,7 +767,21 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
     /* Calculate the order amount. */
     $amount = $profile->getInitAmount() + $profile->getTrialBillingAmount() + $profile->getBillingAmount() + $profile->getShippingAmount() + $profile->getTaxAmount();
     /* Set the order amount. */
-    $order->setBaseSubtotal($amount)->setSubtotal($amount)->setBaseGrandTotal($amount)->setGrandTotal($amount);
+    $order->setSubtotal($amount)
+          ->setGrandTotal($amount)
+          ->setBaseSubtotal($amount)
+          ->setBaseGrandTotal($amount)
+          ->setTotalInvoiced($amount)
+          ->setTotalPaid($amount)
+          ->setTotalOnlineRefunded(0)
+          ->setTotalRefunded(0)
+          ->setTotalDue(0)
+          ->setBaseTotalInvoiced($amount)
+          ->setBaseTotalPaid($amount)
+          ->setBaseTotalInvoicedCost(0)
+          ->setBaseTotalOnlineRefunded(0)
+          ->setBaseTotalRefunded(0)
+          ->setBaseTotalDue(0);
     $order->save();
 
     /* Add the new order to the profile. */
