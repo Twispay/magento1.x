@@ -6,6 +6,20 @@
             <active>true</active>
         </Twispay_Tpay>
     </modules>
+
+    <crontab>
+        <jobs>
+          <twispay_tpay_profile_sync>
+            <schedule>
+              <cron_expr>0 1 * * *</cron_expr>
+            </schedule>
+            <run>
+              <model>tpay/observer::profileSync</model>
+            </run>
+          </twispay_tpay_profile_sync>
+        </jobs>
+    </crontab>
+
     <global>
         <blocks>
             <tpay>

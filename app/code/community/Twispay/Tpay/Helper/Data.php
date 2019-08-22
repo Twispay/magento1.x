@@ -90,10 +90,10 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
         $this->setOrderState( $purchase
                             , Mage_Sales_Model_Order::STATE_PENDING_PAYMENT
                             , Mage_Sales_Model_Order::STATE_PENDING_PAYMENT
-                            , Mage::helper('tpay')->__(' Order #%s pending as payment for transaction #%s is pending.', $purchase->getIncrementId(), $transactionId));
+                            , Mage::helper('tpay')->__(' Order #%s pended as payment for transaction #%s is pending.', $purchase->getIncrementId(), $transactionId));
 
         Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status three-d-pending for order ID: ') . $purchase->getIncrementId(), Zend_Log::WARNING , $this->logFileName, /*forceLog*/TRUE);
-        Mage::getSingleton('core/session')->addWarning(Mage::helper('tpay')->__(' Payment pending for transaction #%s, order #%s.', $transactionId, $purchase->getIncrementId()));
+        Mage::getSingleton('core/session')->addWarning(Mage::helper('tpay')->__(' Payment pended for transaction #%s, order #%s.', $transactionId, $purchase->getIncrementId()));
         return FALSE;
       break;
 
@@ -111,80 +111,7 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
       break;
 
       default:
-        Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE-ERROR]: Wrong status: ') . $purchase->getIncrementId(), Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
-        return FALSE;
-      break;
-    }
-  }
-
-
-  /**
-   * Update the status of a recurring profile order according to the received server status.
-   *
-   * @param profile: The recurring profile order for which to update the status.
-   * @param recurringProfileChildOrder: Child order of the recurring profile.
-   * @param transactionId: The unique server transaction ID of the recurring profile.
-   * @param serverStatus: The status received from server.
-   *
-   * @return bool(FALSE)     - If server status in: [COMPLETE_FAIL, THREE_D_PENDING]
-   *         bool(TRUE)      - If server status in: [IN_PROGRESS, COMPLETE_OK]
-   */
-  private function updateStatus_recurringProfile_backUrl($profile, $recurringProfileChildOrder, $transactionId, $serverStatus){
-    switch ($serverStatus) {
-      case $this->resultStatuses['COMPLETE_FAIL']:
-        /* Set recurring profile status. */
-        $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_SUSPENDED, true);
-        $profile->setReferenceId($transactionId);
-        $profile->save();
-
-        /* Set recurring profile child order status. */
-        $this->setOrderState( $recurringProfileChildOrder
-                            , Mage_Sales_Model_Order::STATE_CANCELED
-                            , Mage_Sales_Model_Order::STATE_CANCELED
-                            , Mage::helper('tpay')->__(' Order #%s canceled as payment for transaction #%s failed.', $recurringProfileChildOrder->getIncrementId(), $transactionId));
-
-        Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status failed for order ID: ') . $profile->getId(), Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
-        Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__(' Order #%s canceled as payment for transaction #%s failed.', $profile->getId(), $transactionId));
-        return FALSE;
-      break;
-
-      case $this->resultStatuses['THREE_D_PENDING']:
-        /* Set recurring profile status. */
-        $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_PENDING, true);
-        $profile->setReferenceId($transactionId);
-        $profile->save();
-
-        /* Set recurring profile child order status. */
-        $this->setOrderState( $recurringProfileChildOrder
-                            , Mage_Sales_Model_Order::STATE_PENDING_PAYMENT
-                            , Mage_Sales_Model_Order::STATE_PENDING_PAYMENT
-                            , Mage::helper('tpay')->__(' Order #%s pending as payment for transaction #%s is pending.', $recurringProfileChildOrder->getIncrementId(), $transactionId));
-
-        Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status three-d-pending for order ID: ') . $profile->getId(), Zend_Log::WARNING , $this->logFileName, /*forceLog*/TRUE);
-        Mage::getSingleton('core/session')->addWarning(Mage::helper('tpay')->__(' Payment pending for transaction #%s, order #%s.', $transactionId, $profile->getId()));
-        return FALSE;
-      break;
-
-      case $this->resultStatuses['IN_PROGRESS']:
-      case $this->resultStatuses['COMPLETE_OK']:
-        /* Set recurring profile status. */
-        $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_ACTIVE, true);
-        $profile->setReferenceId($transactionId);
-        $profile->save();
-
-        /* Set recurring profile child order status. */
-        $this->setOrderState( $recurringProfileChildOrder
-                            , Mage_Sales_Model_Order::STATE_PROCESSING
-                            , Mage_Sales_Model_Order::STATE_PROCESSING
-                            , Mage::helper('tpay')->__(' Order #%s processing as payment for transaction #%s is successful.', $recurringProfileChildOrder->getIncrementId(), $transactionId));
-
-        Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status complete-ok for order ID: ') . $profile->getId(), Zend_Log::NOTICE , $this->logFileName);
-        Mage::getSingleton('core/session')->addSuccess(Mage::helper('tpay')->__(' Payment successful for transaction #%s, order #%s.', $transactionId, $profile->getId()));
-        return TRUE;
-      break;
-
-      default:
-        Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE-ERROR]: Wrong status: ') . $profile->getId(), Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
+        Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE-ERROR]: Wrong status: ') . $serverStatus, Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
         return FALSE;
       break;
     }
@@ -233,8 +160,6 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
       break;
 
       case $this->resultStatuses['CANCEL_OK']:
-      case $this->resultStatuses['VOID_OK']:
-      case $this->resultStatuses['CHARGE_BACK']:
         /* Set order status. */
         $this->setOrderState( $purchase
                             , Mage_Sales_Model_Order::STATE_CANCELED
@@ -245,12 +170,34 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
         return FALSE;
       break;
 
+      case $this->resultStatuses['VOID_OK']:
+        /* Set order status. */
+        $this->setOrderState( $purchase
+                            , Mage_Sales_Model_Order::STATE_CANCELED
+                            , Mage_Sales_Model_Order::STATE_CANCELED
+                            , Mage::helper('tpay')->__(' Order #%s canceled as payment for transaction #%s has been voided ok.', $purchase->getIncrementId(), $transactionId));
+
+        Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status void-ok for order ID: ') . $purchase->getIncrementId(), Zend_Log::NOTICE , $this->logFileName);
+        return FALSE;
+      break;
+
+      case $this->resultStatuses['CHARGE_BACK']:
+        /* Set order status. */
+        $this->setOrderState( $purchase
+                            , Mage_Sales_Model_Order::STATE_CANCELED
+                            , Mage_Sales_Model_Order::STATE_CANCELED
+                            , Mage::helper('tpay')->__(' Order #%s canceled as payment for transaction #%s has been charged back.', $purchase->getIncrementId(), $transactionId));
+
+        Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status charge-back for order ID: ') . $profile->getId(), Zend_Log::NOTICE , $this->logFileName);
+        return FALSE;
+      break;
+
       case $this->resultStatuses['THREE_D_PENDING']:
         /* Set order status. */
         $this->setOrderState( $purchase
                             , Mage_Sales_Model_Order::STATE_PENDING_PAYMENT
                             , Mage_Sales_Model_Order::STATE_PENDING_PAYMENT
-                            , Mage::helper('tpay')->__(' Order #%s pending as payment for transaction #%s is pending.', $purchase->getIncrementId(), $transactionId));
+                            , Mage::helper('tpay')->__(' Order #%s pended as payment for transaction #%s is pending.', $purchase->getIncrementId(), $transactionId));
 
         Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status three-d-pending for order ID: ') . $purchase->getIncrementId(), Zend_Log::WARNING , $this->logFileName, /*forceLog*/TRUE);
         return FALSE;
@@ -269,7 +216,7 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
       break;
 
       default:
-        Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE-ERROR]: Wrong status: ') . $purchase->getIncrementId(), Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
+        Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE-ERROR]: Wrong status: ') . $serverStatus, Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
         return FALSE;
       break;
     }
@@ -280,18 +227,101 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
    * Update the status of a recurring profile order according to the received server status.
    *
    * @param profile: The recurring profile order for which to update the status.
+   * @param recurringProfileChildOrder: Child order of the recurring profile.
+   * @param orderId: The unique Twispay order ID of the recurring profile.
+   * @param transactionId: The unique transaction ID of the order.
    * @param serverStatus: The status received from server.
-   * @param transactionId: The unique server transaction ID of the recurring profile.
    *
-   * @return bool(FALSE)     - If server status in: [COMPLETE_FAIL, CANCEL_OK, VOID_OK, CHARGE_BACK, THREE_D_PENDING]
-   *         bool(TRUE)      - If server status in: [REFUND_OK, IN_PROGRESS, COMPLETE_OK]
+   * @return bool(FALSE)     - If server status in: [COMPLETE_FAIL, THREE_D_PENDING]
+   *         bool(TRUE)      - If server status in: [IN_PROGRESS, COMPLETE_OK]
    */
-  public function updateStatus_recurringProfile_IPN($profile, $transactionId, $serverStatus){
+  private function updateStatus_recurringProfile_backUrl($profile, $recurringProfileChildOrder, $orderId, $transactionId, $serverStatus){
     switch ($serverStatus) {
       case $this->resultStatuses['COMPLETE_FAIL']:
         /* Set recurring profile status. */
         $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_SUSPENDED, true);
+        $profile->setReferenceId($orderId);
         $profile->save();
+
+        /* Set recurring profile child order status. */
+        $this->setOrderState( $recurringProfileChildOrder
+                            , Mage_Sales_Model_Order::STATE_CANCELED
+                            , Mage_Sales_Model_Order::STATE_CANCELED
+                            , Mage::helper('tpay')->__(' Order #%s canceled as payment for transaction #%s failed.', $recurringProfileChildOrder->getIncrementId(), $transactionId));
+
+        Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status failed for order ID: ') . $profile->getId(), Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
+        Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__(' Order #%s canceled as payment for transaction #%s failed.', $profile->getId(), $transactionId));
+        return FALSE;
+      break;
+
+      case $this->resultStatuses['THREE_D_PENDING']:
+        /* Set recurring profile status. */
+        $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_PENDING, true);
+        $profile->setReferenceId($orderId);
+        $profile->save();
+
+        /* Set recurring profile child order status. */
+        $this->setOrderState( $recurringProfileChildOrder
+                            , Mage_Sales_Model_Order::STATE_PENDING_PAYMENT
+                            , Mage_Sales_Model_Order::STATE_PENDING_PAYMENT
+                            , Mage::helper('tpay')->__(' Order #%s pended as payment for transaction #%s is pending.', $recurringProfileChildOrder->getIncrementId(), $transactionId));
+
+        Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status three-d-pending for order ID: ') . $profile->getId(), Zend_Log::WARNING , $this->logFileName, /*forceLog*/TRUE);
+        Mage::getSingleton('core/session')->addWarning(Mage::helper('tpay')->__(' Payment pended for transaction #%s, order #%s.', $transactionId, $profile->getId()));
+        return FALSE;
+      break;
+
+      case $this->resultStatuses['IN_PROGRESS']:
+      case $this->resultStatuses['COMPLETE_OK']:
+        /* Set recurring profile status. */
+        $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_ACTIVE, true);
+        $profile->setReferenceId($orderId);
+        $profile->save();
+
+        /* Set recurring profile child order status. */
+        $this->setOrderState( $recurringProfileChildOrder
+                            , Mage_Sales_Model_Order::STATE_PROCESSING
+                            , Mage_Sales_Model_Order::STATE_PROCESSING
+                            , Mage::helper('tpay')->__(' Order #%s processing as payment for transaction #%s is successful.', $recurringProfileChildOrder->getIncrementId(), $transactionId));
+
+        Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status complete-ok for order ID: ') . $profile->getId(), Zend_Log::NOTICE , $this->logFileName);
+        Mage::getSingleton('core/session')->addSuccess(Mage::helper('tpay')->__(' Payment successful for transaction #%s, order #%s.', $transactionId, $profile->getId()));
+        return TRUE;
+      break;
+
+      default:
+        Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE-ERROR]: Wrong status: ') . $serverStatus, Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
+        return FALSE;
+      break;
+    }
+  }
+
+
+  /**
+   * Update the status of a recurring profile order according to the received server status.
+   *
+   * @param profile: The recurring profile order for which to update the status.
+   * @param recurringProfileChildOrder: Child order of the recurring profile.
+   * @param orderId: The unique Twispay order ID of the recurring profile.
+   * @param transactionId: The unique server transaction ID of the recurring profile.
+   * @param serverStatus: The status received from server.
+   *
+   * @return bool(FALSE)     - If server status in: [COMPLETE_FAIL, CANCEL_OK, VOID_OK, CHARGE_BACK, THREE_D_PENDING]
+   *         bool(TRUE)      - If server status in: [REFUND_OK, IN_PROGRESS, COMPLETE_OK]
+   */
+  public function updateStatus_recurringProfile_IPN($profile, $recurringProfileChildOrder, $orderId, $transactionId, $serverStatus){
+    switch ($serverStatus) {
+      case $this->resultStatuses['COMPLETE_FAIL']:
+        /* Set recurring profile status. */
+        $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_SUSPENDED, true);
+        $profile->setReferenceId($orderId);
+        $profile->save();
+
+        /* Set recurring profile child order status. */
+        $this->setOrderState( $recurringProfileChildOrder
+                            , Mage_Sales_Model_Order::STATE_CANCELED
+                            , Mage_Sales_Model_Order::STATE_CANCELED
+                            , Mage::helper('tpay')->__(' Order #%s canceled as payment for transaction #%s failed.', $recurringProfileChildOrder->getIncrementId(), $transactionId));
 
         Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status failed for order ID: ') . $profile->getId(), Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
         return FALSE;
@@ -299,8 +329,22 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
 
       case $this->resultStatuses['REFUND_OK']:
         /* Set recurring profile status. */
-        $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_SUSPENDED, true);
+        // $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_SUSPENDED, true);
+        $profile->setReferenceId($orderId);
         $profile->save();
+
+        /* Set recurring profile child order status. */
+        // if($recurringProfileChildOrder->getTotalPaid() > $recurringProfileChildOrder->getTotalRefunded()){
+        //   $this->setOrderState( $recurringProfileChildOrder
+        //                       , Mage_Sales_Model_Order::STATE_PROCESSING
+        //                       , Mage_Sales_Model_Order::STATE_PROCESSING
+        //                       , Mage::helper('tpay')->__(' Order #%s processing as payment for transaction #%s is partially refunded.', $recurringProfileChildOrder->getIncrementId(), $transactionId));
+        // } else {
+        //   $this->setOrderState( $recurringProfileChildOrder
+        //                       , Mage_Sales_Model_Order::STATE_CLOSED
+        //                       , Mage_Sales_Model_Order::STATE_CLOSED
+        //                       , Mage::helper('tpay')->__(' Order #%s closed as payment for transaction #%s has been refunded.', $recurringProfileChildOrder->getIncrementId(), $transactionId));
+        // }
 
         Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status refund-ok for order ID: ') . $profile->getId(), Zend_Log::NOTICE , $this->logFileName);
         return TRUE;
@@ -309,25 +353,46 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
       case $this->resultStatuses['CANCEL_OK']:
         /* Set recurring profile status. */
         $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_CANCELED, true);
+        $profile->setReferenceId($orderId);
         $profile->save();
 
+        /* Set recurring profile child order status. */
+        $this->setOrderState( $recurringProfileChildOrder
+                            , Mage_Sales_Model_Order::STATE_CANCELED
+                            , Mage_Sales_Model_Order::STATE_CANCELED
+                            , Mage::helper('tpay')->__(' Order #%s canceled as payment for transaction #%s has been canceled.', $recurringProfileChildOrder->getIncrementId(), $transactionId));
+
         Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status cancel-ok for order ID: ') . $profile->getId(), Zend_Log::NOTICE , $this->logFileName);
-        return TRUE;
+        return FALSE;
       break;
 
       case $this->resultStatuses['VOID_OK']:
         /* Set recurring profile status. */
         $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_CANCELED, true);
+        $profile->setReferenceId($orderId);
         $profile->save();
 
+        /* Set recurring profile child order status. */
+        $this->setOrderState( $recurringProfileChildOrder
+                            , Mage_Sales_Model_Order::STATE_CANCELED
+                            , Mage_Sales_Model_Order::STATE_CANCELED
+                            , Mage::helper('tpay')->__(' Order #%s canceled as payment for transaction #%s has been voided ok.', $recurringProfileChildOrder->getIncrementId(), $transactionId));
+
         Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status void-ok for order ID: ') . $profile->getId(), Zend_Log::NOTICE , $this->logFileName);
-        return TRUE;
+        return FALSE;
       break;
 
       case $this->resultStatuses['CHARGE_BACK']:
         /* Set recurring profile status. */
         $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_SUSPENDED, true);
+        $profile->setReferenceId($orderId);
         $profile->save();
+
+        /* Set recurring profile child order status. */
+        $this->setOrderState( $recurringProfileChildOrder
+                            , Mage_Sales_Model_Order::STATE_CANCELED
+                            , Mage_Sales_Model_Order::STATE_CANCELED
+                            , Mage::helper('tpay')->__(' Order #%s canceled as payment for transaction #%s has been charged back.', $recurringProfileChildOrder->getIncrementId(), $transactionId));
 
         Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status charge-back for order ID: ') . $profile->getId(), Zend_Log::NOTICE , $this->logFileName);
         return FALSE;
@@ -336,7 +401,14 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
       case $this->resultStatuses['THREE_D_PENDING']:
         /* Set recurring profile status. */
         $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_PENDING, true);
+        $profile->setReferenceId($orderId);
         $profile->save();
+
+        /* Set recurring profile child order status. */
+        $this->setOrderState( $recurringProfileChildOrder
+                            , Mage_Sales_Model_Order::STATE_PENDING_PAYMENT
+                            , Mage_Sales_Model_Order::STATE_PENDING_PAYMENT
+                            , Mage::helper('tpay')->__(' Order #%s pended as payment for transaction #%s is pending.', $recurringProfileChildOrder->getIncrementId(), $transactionId));
 
         Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status three-d-pending for order ID: ') . $profile->getId(), Zend_Log::WARNING , $this->logFileName, /*forceLog*/TRUE);
         return FALSE;
@@ -346,14 +418,21 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
       case $this->resultStatuses['COMPLETE_OK']:
         /* Set recurring profile status. */
         $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_ACTIVE, true);
+        $profile->setReferenceId($orderId);
         $profile->save();
+
+        /* Set recurring profile child order status. */
+        $this->setOrderState( $recurringProfileChildOrder
+                            , Mage_Sales_Model_Order::STATE_PROCESSING
+                            , Mage_Sales_Model_Order::STATE_PROCESSING
+                            , Mage::helper('tpay')->__(' Order #%s processing as payment for transaction #%s is successful.', $recurringProfileChildOrder->getIncrementId(), $transactionId));
 
         Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status complete-ok for order ID: ') . $profile->getId(), Zend_Log::NOTICE , $this->logFileName);
         return TRUE;
       break;
 
       default:
-        Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE-ERROR]: Wrong status: ') . $profile->getId(), Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
+        Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE-ERROR]: Wrong status: ') . $serverStatus, Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
         return FALSE;
       break;
     }
@@ -437,10 +516,15 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
 
   /************************** Api START **************************/
   /**
-   * Function that extracts the details of a transaction
-   *  from the Twisplay platform.
+   * Function that extracts the status of an order from the
+   *  Twisplay platform.
+   * 
+   * @param orderId: The unique Twispay order ID of a recurring profile.
+   *
+   * @return string(server-status) In case of success.
+   *         bool(FALSE)           If case if failure.
    */
-  public function getTransactionDetails($transactionId){
+  public function getServerOrderStatus($orderId){
     /* Get the config values. */
     $apiKey = Mage::helper('tpay')->getApiKey();
     Mage::Log(__FUNCTION__ . ': apiKey=' . print_r($apiKey, true), Zend_Log::DEBUG, $this->logFileName);
@@ -448,12 +532,12 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
     Mage::Log(__FUNCTION__ . ': url=' . print_r($url, true), Zend_Log::DEBUG, $this->logFileName);
 
     if ('' == $apiKey) {
-      Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' Transaction details extraction failed: Incomplete or missing configuration.'), Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
-      return [];
+      Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' Order details extraction failed: Incomplete or missing configuration.'), Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
+      return FALSE;
     }
 
     /* Create the URL. */
-    $url = $url . '/transaction/' . $transactionId;
+    $url = $url . '/order/' . $orderId;
 
     /* Make the server request. */
     $ch = curl_init();
@@ -467,24 +551,72 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
     /* Decode the response. */
     $response = json_decode($response);
 
-    Mage::Log(__FUNCTION__ . ': response=' . print_r($response, true), Zend_Log::DEBUG, $this->logFileName);
     /* Check if the response code is 200 and message is 'Success'. */
     if ((200 == $response->code) && ('Success' == $response->message)) {
-      /* Create a refund transaction */
-      // $payment->setTransactionId($response->data->transactionId);
-      // $payment->addTransaction(Mage_Sales_Model_Order_Payment_Transaction::TYPE_REFUND, null, false, 'OK');
-      // $payment->setTransactionAdditionalInfo( Mage_Sales_Model_Order_Payment_Transaction::RAW_DETAILS
-      //                                       , [ 'orderId'               => $transactionData['orderId']
-      //                                         , 'refundedTransactionId' => $transactionData['transactionId']
-      //                                         , 'transactionId'         => $response->data->transactionId
-      //                                         , 'amount'                => $amount]);
-      // $payment->setIsTransactionClosed(TRUE);
+      return $response->data->orderStatus;
     } else {
-      Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' Transaction details extraction failed: Server returned error: %s'), Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
-      return [];
+      Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' Order details extraction failed: Server returned error: %s', $response->message), Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
+      return FALSE;
+    }
+  }
+
+
+  /**
+   * Function that cancels a recurring profile
+   *  in the Twispay platform.
+   * 
+   * @param profile: The recurring profile order for which to update the status.
+   * @param recurringProfileChildOrder: Child order of the recurring profile.
+   * @param message: The cancel reason.
+   */
+  public function cancelRecurringProfile($profile, $recurringProfileChildOrder, $message){
+    /* Get the config values. */
+    $apiKey = Mage::helper('tpay')->getApiKey();
+    Mage::Log(__FUNCTION__ . ': apiKey=' . print_r($apiKey, true), Zend_Log::DEBUG, $this->logFileName);
+    $url = Mage::helper('tpay')->getApiUrl();
+    Mage::Log(__FUNCTION__ . ': url=' . print_r($url, true), Zend_Log::DEBUG, $this->logFileName);
+
+    if ('' == $apiKey) {
+      Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' Subscription cancel failed: Incomplete or missing configuration.'), Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
+      return;
     }
 
-    return $response->data;
+    /* Create the URL. */
+    $url = $url . '/order/' . $profile->getReferenceId();
+
+    /* Create the DELETE data arguments. */
+    $postData = 'message=' . $message;
+
+    /* Make the server request. */
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "DELETE");
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['accept: application/json', 'Authorization: ' . $apiKey]);
+    curl_setopt($ch, CURLOPT_POST, count($postData));
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+
+    /* Send the request. */
+    $response = curl_exec($ch);
+    curl_close($ch);
+    /* Decode the response. */
+    $response = json_decode($response);
+
+    /* Check if the response code is 200 and message is 'Success'. */
+    if ((200 == $response->code) && ('Success' == $response->message)) {
+      /* Set recurring profile status. */
+      $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_CANCELED, true);
+      $profile->save();
+
+      /* Set recurring profile child order status. */
+      $this->setOrderState( $recurringProfileChildOrder
+                          , Mage_Sales_Model_Order::STATE_CANCELED
+                          , Mage_Sales_Model_Order::STATE_CANCELED
+                          , Mage::helper('tpay')->__(' Order #%s canceled as recurring profile #%s has been canceled.', $recurringProfileChildOrder->getIncrementId(), $profile->getId()));
+    } else {
+      Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' Subscription cancel failed: Server returned error: %s', $response->message), Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
+      return;
+    }
   }
   /************************** Api END **************************/
 
@@ -629,7 +761,6 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
   public function addOrderTransaction($order, $serverResponse){
     /* Save the payment transaction. */
     $payment = $order->getPayment();
-    Mage::log(__FUNCTION__ . " payment = " . print_r($payment->debug(), true), Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
     $payment->setTransactionId($serverResponse['transactionId']);
     $transaction = $payment->addTransaction(Mage_Sales_Model_Order_Payment_Transaction::TYPE_CAPTURE, null, false, 'OK');
     $transaction->setAdditionalInformation( Mage_Sales_Model_Order_Payment_Transaction::RAW_DETAILS
@@ -647,14 +778,25 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
 
 
   /**
-   * Function that adds a new invoice for a transaction to the order.
+   * Function that adds a new invoice for the init fee and
+   *  trial period to the order.
    *
    * @param order: The order to which to add the transaction invoice.
    * @param transactionId: The ID of the transaction.
    */
-  public function addInvoice($order, $transactionId){
+  public function addTrialInvoice($order, $transactionId){
+    /* Construct the invoice items array an the total cost. */
+    $trialItems = [];
+    $totalCost = $order->getGrandTotal();
+    foreach ($order->getAllItems() as $item) {
+      if(('initial_fee' === $item->getSku()) || ('trial_fee' === $item->getSku())){
+        $trialItems[$item->getId()] = 1;
+        $totalCost += $item->getBasePrice();
+      }
+    }
+
     /* Create 'Pending' state invoice. */
-    $invoiceId = Mage::getModel('sales/order_invoice_api')->create($order->getIncrementId(), array());
+    $invoiceId = Mage::getModel('sales/order_invoice_api')->create($order->getIncrementId(), $trialItems);
     $invoice = Mage::getModel('sales/order_invoice')->loadByIncrementId($invoiceId);
 
     /* Add the transaction to the invoice and pay the invoice. */
@@ -663,7 +805,58 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
     /* Pay invoice. */
     $invoice->capture()->save();
 
-    Mage::Log(__FUNCTION__ . ' canRefund=' . print_r($invoice->canRefund(), true), Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
+    /* Set the order amount. */
+    $order->setSubtotal($totalCost)
+          ->setGrandTotal($totalCost)
+          ->setBaseSubtotal($totalCost)
+          ->setBaseGrandTotal($totalCost)
+          ->setTotalInvoiced($totalCost)
+          ->setTotalPaid($totalCost)
+          ->setBaseTotalInvoiced($totalCost)
+          ->setSubtotalInvoiced($totalCost)
+          ->setBaseTotalPaid($totalCost);
+    $order->save();
+  }
+
+
+  /**
+   * Function that adds a new invoice for a normal period to the order.
+   *
+   * @param order: The order to which to add the transaction invoice.
+   * @param transactionId: The ID of the transaction.
+   */
+  public function addNormalInvoice($order, $transactionId){
+    /* Construct the invoice items array an the total cost. */
+    $normalItems = [];
+    $totalCost = $order->getGrandTotal();
+    foreach ($order->getAllItems() as $item) {
+      if(('initial_fee' !== $item->getSku()) && ('trial_fee' !== $item->getSku())){
+        $normalItems[$item->getId()] = 1;
+        $totalCost += $item->getBasePrice();
+      }
+    }
+
+    /* Create 'Pending' state invoice. */
+    $invoiceId = Mage::getModel('sales/order_invoice_api')->create($order->getIncrementId(), $normalItems);
+    $invoice = Mage::getModel('sales/order_invoice')->loadByIncrementId($invoiceId);
+
+    /* Add the transaction to the invoice and pay the invoice. */
+    $invoice->setTransactionId($transactionId);
+
+    /* Pay invoice. */
+    $invoice->capture()->save();
+
+    /* Set the order amount. */
+    $order->setSubtotal($totalCost)
+          ->setGrandTotal($totalCost)
+          ->setBaseSubtotal($totalCost)
+          ->setBaseGrandTotal($totalCost)
+          ->setTotalInvoiced($totalCost)
+          ->setTotalPaid($totalCost)
+          ->setBaseTotalInvoiced($totalCost)
+          ->setSubtotalInvoiced($totalCost)
+          ->setBaseTotalPaid($totalCost);
+    $order->save();
   }
 
 
@@ -673,7 +866,7 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
    * @param order: The order that has the transaction and the invoice.
    * @param transactionId: The ID of the transaction.
    */
-  public function addTransaction($order, $transactionId){
+  public function addPurchaseInvoice($order, $transactionId){
     /* Add the transaction to the invoice. */
     $invoice = $order->getInvoiceCollection()->addAttributeToSort('created_at', 'DSC')->setPage(1, 1)->getFirstItem();
     $invoice->setTransactionId($transactionId);
@@ -690,15 +883,6 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
     /* Create and save a new order. */
     $order = $profile->createOrder();
     $order->save();
-
-    // $billingAddress = Mage::getModel('sales/order_address')
-    //         ->setData($this->getBillingAddressInfo())
-    //         ->setId(null);
-
-    // $shippingInfo = $this->getShippingAddressInfo();
-    // $shippingAddress = Mage::getModel('sales/order_address')
-    //     ->setData($shippingInfo)
-    //     ->setId(null);
 
     /* Get the order item data and the product. */
     $orderItemInfo = $profile->getOrderItemInfo();
@@ -765,7 +949,7 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
     $periodOrderItem->save();
 
     /* Calculate the order amount. */
-    $amount = $profile->getInitAmount() + $profile->getTrialBillingAmount() + $profile->getBillingAmount() + $profile->getShippingAmount() + $profile->getTaxAmount();
+    $amount = $profile->getShippingAmount() + $profile->getTaxAmount();
     /* Set the order amount. */
     $order->setSubtotal($amount)
           ->setGrandTotal($amount)
@@ -773,11 +957,11 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
           ->setBaseGrandTotal($amount)
           ->setTotalInvoiced($amount)
           ->setTotalPaid($amount)
+          ->setBaseTotalPaid($amount)
+          ->setSubtotalInvoiced($amount)
           ->setTotalOnlineRefunded(0)
           ->setTotalRefunded(0)
           ->setTotalDue(0)
-          ->setBaseTotalInvoiced($amount)
-          ->setBaseTotalPaid($amount)
           ->setBaseTotalInvoicedCost(0)
           ->setBaseTotalOnlineRefunded(0)
           ->setBaseTotalRefunded(0)
@@ -798,11 +982,7 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
    */
   public function getRecurringProfileChildOrder($profile){
     /* Extract the related order. */
-    $order = Mage::getModel('sales/order')->loadByAttribute('entity_id', $profile->getChildOrderIds()[0]);
-
-    Mage::log(__FUNCTION__ . " order = " . print_r($order->debug(), true), Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
-
-    return $order;
+    return Mage::getModel('sales/order')->loadByAttribute('entity_id', $profile->getChildOrderIds()[0]);
   }
   /************************** Response END **************************/
 
@@ -816,6 +996,7 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
    * @param profile: The recurring profile.
    * @param order: The order in case of a purchase and the recurring profile
    *                child order in case of a subscription.
+   * @param orderId: The unique Twispay order ID of the recurring profile.
    * @param transactionId: The ID of the transaction.
    * @param serverStatus: The status received from server.
    * @param identifier: The unique identifier of the twispay request.
@@ -823,11 +1004,11 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
    * @return bool(FALSE) - If server status in: [COMPLETE_FAIL, THREE_D_PENDING]
    *         bool(TRUE)  - If server status in: [IN_PROGRESS, COMPLETE_OK]
    */
-  public function updateStatus_backUrl($profile, $order, $transactionId, $serverStatus, $identifier){
+  public function updateStatus_backUrl($profile, $order, $orderId, $transactionId, $serverStatus, $identifier){
     if('p' == $identifier){
       return $this->updateStatus_purchase_backUrl($order, $transactionId, $serverStatus);
     } else {
-      return $this->updateStatus_recurringProfile_backUrl($profile, $order, $transactionId, $serverStatus);
+      return $this->updateStatus_recurringProfile_backUrl($profile, $order, $orderId, $transactionId, $serverStatus);
     }
   }
 
@@ -839,6 +1020,7 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
    * @param profile: The recurring profile.
    * @param order: The order in case of a purchase and the recurring profile
    *                child order in case of a subscription.
+   * @param orderId: The unique Twispay order ID of the recurring profile.
    * @param transactionId: The ID of the transaction.
    * @param serverStatus: The status received from server.
    * @param identifier: The unique identifier of the twispay request.
@@ -846,11 +1028,69 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
    * @return bool(FALSE) - If server status in: [COMPLETE_FAIL, CANCEL_OK, VOID_OK, CHARGE_BACK, THREE_D_PENDING]
    *         bool(TRUE)  - If server status in: [REFUND_OK, IN_PROGRESS, COMPLETE_OK]
    */
-  public function updateStatus_IPN($profile, $order, $transactionId, $serverStatus, $identifier){
+  public function updateStatus_IPN($profile, $order, $orderId, $transactionId, $serverStatus, $identifier){
     if('p' == $identifier){
       return $this->updateStatus_purchase_IPN($order, $transactionId, $serverStatus);
     } else {
-      return $this->updateStatus_recurringProfile_IPN($profile, $transactionId, $serverStatus);
+      return $this->updateStatus_recurringProfile_IPN($profile, $order, $orderId, $transactionId, $serverStatus);
+    }
+  }
+
+
+  /**
+   * Update the status of a recurring profile order according to the extracted server status.
+   *
+   * @param profile: The recurring profile order for which to update the status.
+   * @param recurringProfileChildOrder: Child order of the recurring profile.
+   * @param serverStatus: The status received from server.
+   */
+  public function updateProfileStatus($profile, $recurringProfileChildOrder, $serverStatus){
+    switch ($serverStatus) {
+      case $this->resultStatuses['COMPLETE_FAIL']: /* The subscription has payment failure. */
+      case $this->resultStatuses['THREE_D_PENDING']: /* The subscription has a 3D pending payment. */
+        /* Set recurring profile status. */
+        $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_PENDING, true);
+        $profile->save();
+
+        /* Set recurring profile child order status. */
+        $this->setOrderState( $recurringProfileChildOrder
+                            , Mage_Sales_Model_Order::STATE_PENDING_PAYMENT
+                            , Mage_Sales_Model_Order::STATE_PENDING_PAYMENT
+                            , Mage::helper('tpay')->__(' Order #%s pending based on server status.', $recurringProfileChildOrder->getIncrementId()));
+      break;
+
+      case $this->resultStatuses['COMPLETE_OK']: /* The subscription has been completed. */
+      case $this->resultStatuses['CANCEL_OK']: /* The subscription has been canceled. */
+      case $this->resultStatuses['REFUND_OK']: /* The subscription has been refunded. */
+      case $this->resultStatuses['VOID_OK']: /* The subscription has been voided. */
+      case $this->resultStatuses['CHARGE_BACK']: /* The subscription has been forced back. */
+        /* Set recurring profile status. */
+        $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_CANCELED, true);
+        $profile->save();
+
+        /* Set recurring profile child order status. */
+        $this->setOrderState( $recurringProfileChildOrder
+                            , Mage_Sales_Model_Order::STATE_CANCELED
+                            , Mage_Sales_Model_Order::STATE_CANCELED
+                            , Mage::helper('tpay')->__(' Order #%s canceled on periodic sync based on server status.', $recurringProfileChildOrder->getIncrementId()));
+      break;
+
+      case $this->resultStatuses['EXPIRING']: /* The subscription will expire soon. */
+      case $this->resultStatuses['IN_PROGRESS']: /* The subscription is in progress. */
+        /* Set recurring profile status. */
+        $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_ACTIVE, true);
+        $profile->save();
+
+        /* Set recurring profile child order status. */
+        $this->setOrderState( $recurringProfileChildOrder
+                            , Mage_Sales_Model_Order::STATE_PROCESSING
+                            , Mage_Sales_Model_Order::STATE_PROCESSING
+                            , Mage::helper('tpay')->__(' Order #%s activated based on server status.', $recurringProfileChildOrder->getIncrementId()));
+      break;
+
+      default:
+        Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE-ERROR]: Wrong status: ') . $serverStatus, Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
+      break;
     }
   }
   /************************** Status Update END **************************/

@@ -111,13 +111,13 @@ class Twispay_Tpay_Model_PaymentMethod extends Mage_Payment_Model_Method_Abstrac
     curl_setopt($ch, CURLOPT_HTTPHEADER, ['accept: application/json', 'Authorization: ' . $apiKey]);
     curl_setopt($ch, CURLOPT_POST, count($postData));
     curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+
     /* Send the request. */
     $response = curl_exec($ch);
     curl_close($ch);
     /* Decode the response. */
     $response = json_decode($response);
 
-    Mage::Log(__FUNCTION__ . ': response=' . print_r($response, true), Zend_Log::DEBUG, $this->logFileName);
     /* Check if the response code is 200 and message is 'Success'. */
     if ((200 == $response->code) && ('Success' == $response->message)) {
       /* Create a refund transaction */
@@ -209,8 +209,10 @@ class Twispay_Tpay_Model_PaymentMethod extends Mage_Payment_Model_Method_Abstrac
 
       switch ($profile->getNewState()) {
         case Mage_Sales_Model_Recurring_Profile::STATE_CANCELED:
+          /* Extract the child order. */
+          $order = Mage::helper('tpay')->getRecurringProfileChildOrder($profile);
           /* Cancel the recurring profile. */
-          Mage::helper('tpay')->cancelRecurringProfile($profile);
+          Mage::helper('tpay')->cancelRecurringProfile($profile, $order, 'Manual cancel.');
         break;
 
         default:
