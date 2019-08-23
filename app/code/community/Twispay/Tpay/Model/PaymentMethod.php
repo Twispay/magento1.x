@@ -118,8 +118,8 @@ class Twispay_Tpay_Model_PaymentMethod extends Mage_Payment_Model_Method_Abstrac
     /* Decode the response. */
     $response = json_decode($response);
 
-    /* Check if the response code is 200 and message is 'Success'. */
-    if ((200 == $response->code) && ('Success' == $response->message)) {
+    /* Check if the decryption was successful, the response code is 200 and message is 'Success'. */
+    if ((NULL !== $response) && (200 == $response->code) && ('Success' == $response->message)) {
       /* Create a refund transaction */
       $payment->setTransactionId($response->data->transactionId);
       $payment->addTransaction(Mage_Sales_Model_Order_Payment_Transaction::TYPE_REFUND, null, false, 'OK');

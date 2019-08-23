@@ -421,7 +421,7 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
               Mage::helper('tpay')->addNormalInvoice($order, $decrypted['transactionId']);
             }
 
-          } catch (Exception $e) {
+          } catch (Exception $exception) {
             Mage::logException($exception);
             Mage::log(__FUNCTION__ . $exception, Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
           }

@@ -188,7 +188,7 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
                             , Mage_Sales_Model_Order::STATE_CANCELED
                             , Mage::helper('tpay')->__(' Order #%s canceled as payment for transaction #%s has been charged back.', $purchase->getIncrementId(), $transactionId));
 
-        Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status charge-back for order ID: ') . $profile->getId(), Zend_Log::NOTICE , $this->logFileName);
+        Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status charge-back for order ID: ') . $purchase->getIncrementId(), Zend_Log::NOTICE , $this->logFileName);
         return FALSE;
       break;
 
@@ -551,8 +551,8 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
     /* Decode the response. */
     $response = json_decode($response);
 
-    /* Check if the response code is 200 and message is 'Success'. */
-    if ((200 == $response->code) && ('Success' == $response->message)) {
+    /* Check if the decryption was successful, the response code is 200 and message is 'Success'. */
+    if ((NULL !== $response) && (200 == $response->code) && ('Success' == $response->message)) {
       return $response->data->orderStatus;
     } else {
       Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' Order details extraction failed: Server returned error: %s', $response->message), Zend_Log::ERR , $this->logFileName, /*forceLog*/TRUE);
@@ -602,8 +602,8 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
     /* Decode the response. */
     $response = json_decode($response);
 
-    /* Check if the response code is 200 and message is 'Success'. */
-    if ((200 == $response->code) && ('Success' == $response->message)) {
+    /* Check if the decryption was successful, the response code is 200 and message is 'Success'. */
+    if ((NULL !== $response) && (200 == $response->code) && ('Success' == $response->message)) {
       /* Set recurring profile status. */
       $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_CANCELED, true);
       $profile->save();
@@ -687,7 +687,14 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
     }
 
     /* JSON decode the decrypted data. */
-    return json_decode($decryptedResponse, /*assoc*/TRUE, /*depth*/4);
+    $decodedResponse = json_decode($decryptedResponse, /*assoc*/TRUE, /*depth*/4);
+
+    /* Check if the decryption was successful. */
+    if (NULL === $decodedResponse) {
+      return FALSE;
+    }
+
+    return $decodedResponse;
   }
 
 
