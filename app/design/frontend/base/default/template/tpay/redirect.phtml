@@ -1,70 +1,16 @@
-<?php
-$_order = new Mage_Sales_Model_Order();
-
-// Get this guys last order
-$orderId = Mage::getSingleton('checkout/session')->getLastRealOrderId();
-$_order->loadByIncrementId($orderId);
-?>
 <br>
 <br>
 <!-- We can peacefully add some nice redirection here with some intentional delay -->
 <div style="text-align:center">
-    <h2>We are redirecting you to payment. Please wait ...</h2>
-    <br>
-    <img src="http://i.imgur.com/KUJoe.gif" />
+  <h2>We are redirecting you to payment. Please wait ...</h2>
+  <br>
+  <img src="http://i.imgur.com/KUJoe.gif" />
 </div>
 
 <!-- Hidden form to submit -->
-<form accept-charset="UTF-8" id="twispay" method="post" action="<?php echo $url; ?>">
-    <input type="hidden" name="address" value="<?php echo $address;?>">
-    <input type="hidden" name="amount" value="<?php echo $amount;?>">
-    <input type="hidden" name="backUrl" value="<?php echo $backUrl;?>">
-    <input type="hidden" name="cardTransactionMode" value="<?php echo $cardTransactionMode;?>">
-    <input type="hidden" name="city" value="<?php echo $city;?>">
-    <input type="hidden" name="country" value="<?php echo $country;?>">
-    <input type="hidden" name="currency" value="<?php echo $currency;?>">
-    <input type="hidden" name="description" value="<?php echo $description;?>">
-    <input type="hidden" name="email" value="<?php echo $email;?>">
-    <input type="hidden" name="firstName" value="<?php echo $firstName;?>">
-    <input type="hidden" name="identifier" value="<?php echo $identifier;?>"> 
-    
-     <?php 
-     
-    $index=0;
-	foreach ($_order->getAllItems() as $key => $ord) 
-	{
-    ?> 
-    <input type="hidden" name="item[<?php echo $key;?>]" value="<?php echo $ord->getName();?>">
-    <input type="hidden" name="unitPrice[<?php echo $key;?>]" value="<?php echo strval(number_format((float)$ord->getPriceInclTax(), 2, '.', ''));?>">
-    <input type="hidden" name="units[<?php echo $key;?>]" value="<?php echo (int)$ord->getQtyOrdered();?>">
-    <input type="hidden" name="subTotal[<?php echo $key;?>]" value="<?php echo strval(number_format((float)$ord->getRowTotalInclTax(), 2, '.', ''));?>">
-    <?php
-    $index++;
-    
-    }
-    
-    if ($_order->getShippingAmount() > 0) { 
-    ?> 
-    <input type="hidden" name="item[<?php echo $index;?>]" value="Transport">
-    <input type="hidden" name="unitPrice[<?php echo $index;?>]" value="<?php echo strval(number_format((float) $_order->getShippingAmount(), 2, '.', ''));?>">
-    <input type="hidden" name="units[<?php echo $index;?>]" value="1">
-    <input type="hidden" name="subTotal[<?php echo $index;?>]" value="<?php echo strval(number_format((float) $_order->getShippingAmount(), 2, '.', ''));?>">
-    <?php
-    	
-    }
-    
-    ?>
-    
-    <input type="hidden" name="lastName" value="<?php echo $lastName;?>">
-    <input type="hidden" name="orderId" value="<?php echo $orderId;?>">
-    <input type="hidden" name="orderType" value="<?php echo $orderType;?>">
-    <input type='hidden' name='phone' value="<?php echo $phone;?>">
-    <input type="hidden" name="siteId" value="<?php echo $siteId;?>">
-    <input type="hidden" name="state" value="<?php echo $state;?>">
-    <input type="hidden" name="zipCode" value="<?php echo $zipCode;?>">
-    <input type="hidden" name="checksum" value="<?php echo $checksum;?>"> 
+<form action="<?= Mage::registry('url'); ?>" method="POST" accept-charset="UTF-8" id="twispay_payment_form">
+  <input type="hidden" name="jsonRequest" value="<?= Mage::registry('jsonRequest'); ?>">
+  <input type="hidden" name="checksum" value="<?= Mage::registry('checksum'); ?>">
 </form>
 
-<script type="text/javascript">
-document.getElementById("twispay").submit();
-</script>
+<script type="text/javascript">document.getElementById("twispay_payment_form").submit();</script>

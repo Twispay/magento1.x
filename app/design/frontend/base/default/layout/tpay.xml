@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+
+<layout version="0.1.0">
+    <checkout_onepage_success>
+        <reference name="checkout.success">
+            <block type="checkout/onepage_success" name="checkout.success" template="tpay/checkout/success.phtml"/>
+        </reference>
+    </checkout_onepage_success>
+
+    <checkout_onepage_failure>
+        <reference name="checkout.failure">
+            <block type="checkout/onepage_failure" name="checkout.failure" template="tpay/checkout/failure.phtml"/>
+        </reference>
+    </checkout_onepage_failure>
+</layout>

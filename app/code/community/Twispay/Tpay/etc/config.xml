@@ -3,8 +3,23 @@
     <modules>
         <Twispay_Tpay>
             <version>1.0.0</version>
+            <active>true</active>
         </Twispay_Tpay>
     </modules>
+
+    <crontab>
+        <jobs>
+          <twispay_tpay_profile_sync>
+            <schedule>
+              <cron_expr>0 1 * * *</cron_expr>
+            </schedule>
+            <run>
+              <model>tpay/observer::profileSync</model>
+            </run>
+          </twispay_tpay_profile_sync>
+        </jobs>
+    </crontab>
+
     <global>
         <blocks>
             <tpay>
@@ -36,14 +51,24 @@
                 </connection>
             </tpay_read>
         </resources>
+        <helpers>
+            <tpay>
+                <class>Twispay_Tpay_Helper</class>
+            </tpay>
+        </helpers>
     </global>
     <default>
         <payment>
             <tpay>
-                <active>1</active>
                 <model>tpay/PaymentMethod</model>
-                <order_status>pending</order_status>
-                <title>Credit Card (by Twispay)</title>
+                <payment_action>authorize_capture</payment_action>
+                <liveMode>0</liveMode>
+                <stagingSiteId></stagingSiteId>
+                <stagingApiKey></stagingApiKey>
+                <liveSiteId></liveSiteId>
+                <liveApiKey></liveApiKey>
+                <paymentServer></paymentServer>
+                <contactEmail></contactEmail>
             </tpay>
         </payment>
     </default>
@@ -57,5 +82,32 @@
                 </args>
             </tpay>
         </routers>
+        <translate>
+            <modules>
+                <Twispay_Tpay>
+                    <files>
+                        <default>Twispay_Tpay.csv</default>
+                    </files>
+                </Twispay_Tpay>
+            </modules>
+        </translate>
+        <layout>
+            <updates>
+                <tpay module="Twispay_Tpay">
+                    <file>tpay.xml</file>
+                </tpay>
+            </updates>
+        </layout>
+        <events>            
+            <checkout_submit_all_after>
+                <observers>
+                    <Twispay_Tpay_Customevent>
+                        <type>singleton</type>
+                        <class>Twispay_Tpay_Model_Observer</class>
+                        <method>checkoutSubmitAllFunction</method>
+                    </Twispay_Tpay_Customevent>
+                </observers>
+            </checkout_submit_all_after>
+        </events>
     </frontend>
-</config> 
+</config>

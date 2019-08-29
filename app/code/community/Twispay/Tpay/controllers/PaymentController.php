@@ -1,362 +1,563 @@
 <?php
-
-if (!function_exists('boolval')) {
-    function boolval($val) {
-            return (bool) $val;
-    }
+if (! function_exists('boolval' )) {
+  function boolval($val) {
+    return(bool) $val;
+  }
 }
 
-class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action
-{
-    // Redirect to twispay 
-    private $LOG_FILE_NAME = 'tpay.log';
 
-    public function redirectAction()
-    {
-        try {
-            Mage::Log('Step 5 Process: Loading the redirect.html page', Zend_Log::DEBUG, $this->LOG_FILE_NAME);
-            $this->loadLayout();
-            // Get latest order data
-            $orderId = Mage::getSingleton('checkout/session')->getLastRealOrderId();
-            $order = Mage::getModel('sales/order')->loadByIncrementId($orderId);
-            
+class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
+  /* The name of the logging file. */
+  private $logFileName = 'tpay.log';
 
-            // Set status to payment pending
-            $order->setState(Mage_Sales_Model_Order::STATE_PENDING_PAYMENT, true)->save();
-            $amount = $order-> getBaseGrandTotal();
-            $email = $order->getCustomerEmail();
-            $name = $order->getCustomerName(); 
-            
-            $billingAddress     = $order->getBillingAddress();
-            $street = $billingAddress->getStreet();
-            $firstName = $billingAddress->getFirstname();
-            $lastName = $billingAddress->getLastname();
-            $country = $billingAddress->getCountry();
-            $city = $billingAddress->getCity();
-            $zipCode = $billingAddress->getPostcode();
-            $state = ($billingAddress->getCountryId() == 'US' && $billingAddress->getRegionCode() != null) ? $billingAddress->getRegionCode() : '';
-            $currency = $order->getOrderCurrencyCode();
-            
-            
-            $items = array();
-            $units = array();
-            $unitPrice = array();
-            $subTotal = array();
-            foreach ($order->getAllItems() as $key => $item) {
-            	$items[$key] = $item->getName();
-            	$subTotal[$key] = strval(number_format((float)$item->getRowTotalInclTax(), 2, '.', ''));
-            	$unitPrice[$key] = strval(number_format((float)$item->getPriceInclTax(), 2, '.', ''));
-            	$units[$key] = (int)$item->getQtyOrdered();
-            }
-            
-            // Add the shipping price
-            
-            if ($order->getShippingAmount() > 0) {
-            	$index             = count($items);
-            	$items[$index]     = "Transport";
-            	$unitPrice[$index] = strval(number_format((float) $order->getShippingAmount(), 2, '.', ''));;
-            	$units[$index]     = "1";
-            	$subTotal[$index]  = strval(number_format((float) $order->getShippingAmount(), 2, '.', ''));
-            }
-            
-            
-            $phone = substr(str_replace(' ', '', $billingAddress->getTelephone()), 0, 20);
-            $rmTranid = time();
+  /**
+   * Function that populates the JSON that needs to be sent to the server
+   *  for a normal purchase.
+   * 
+   * @return void
+   */
+  public function purchaseAction(){
+    try{
+      Mage::Log(__FUNCTION__ . ': ' . Mage::helper('tpay')->__(' Extract order details to send to Twispay server.'), Zend_Log::NOTICE, $this->logFileName);
+      $this->loadLayout();
 
-            $index = strpos($amount, '.');
-            if ($index !== False){
-                $amount = substr($amount, 0, $index+3);  
-            }
+      /* Get latest orderId and extract the order. */
+      $orderId = Mage::getSingleton('checkout/session')->getLastRealOrderId();
+      $order = Mage::getModel('sales/order')->loadByIncrementId($orderId);
+      Mage::Log(__FUNCTION__ . ': orderId=' . $orderId, Zend_Log::DEBUG, $this->logFileName);
 
-            $storeId = Mage::app()->getStore()->getStoreId();
-            $storeCode = Mage::app()->getStore()->getCode();
-            Mage::log("Store ID and Code: $storeId | $storeCode", Zend_Log::DEBUG, $this->LOG_FILE_NAME);
-            $url = Mage::getStoreConfig('payment/tpay/payment_url', $storeId);
-            $api_key = Mage::getStoreConfig('payment/tpay/api_key', $storeId);
-            $site_id = Mage::getStoreConfig('payment/tpay/site_id', $storeId);
-            Mage::log("Data from Backend: $url | $api_key | $site_id", Zend_Log::DEBUG, $this->LOG_FILE_NAME);
+      /* Set order status to payment pending. */
+      $order->setState(Mage_Sales_Model_Order::STATE_PENDING_PAYMENT, true);
+      $order->setStatus(Mage_Sales_Model_Order::STATE_PENDING_PAYMENT);
+      // $order->addStatusToHistory($order->getStatus(), __('Redirecting to Twispay payment gateway'));
+      $order->save();
 
-            
-            $siteUrl = Mage::getBaseUrl();
-            $data = Array();
-            $data['address'] = $street[0];
-            $data['amount'] = $amount;
-            $data['backUrl'] = $siteUrl."/tpay/payment/response/";
-            $data['cardTransactionMode'] = "authAndCapture";
-            $data['city'] = $city;
-            $data['country'] = $country;
-            $data['currency'] = $currency;
-            $data['description'] = "Processing order: ".$orderId;
-            $data['email'] = $email;
-            $data['firstName'] = $firstName;
-            $data['identifier'] = "_".$rmTranid;
-            $data['item'] = $items;
-            $data['lastName'] = $lastName;
-            $data['orderId'] = $orderId;
-            $data['orderType'] = "purchase";
-            $data['phone'] = $phone;
-            $data['siteId'] = $site_id;
-            $data['state'] = $state;
-            $data['subTotal'] = $subTotal;
-            $data['unitPrice'] = $unitPrice;
-            $data['units'] = $units;
-            $data['zipCode'] = $zipCode;
-            
-            
-            $checksum = $this->computeChecksum($data,$api_key);
-            
+      /* Get the config values. */
+      $siteId = Mage::helper('tpay')->getSiteId();
+      $apiKey = Mage::helper('tpay')->getApiKey();
+      $url = Mage::helper('tpay')->getUrl();
 
-            $data['checksum'] = $checksum;
+      if(('' == $siteId) || ('' == $apiKey)){
+        Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__(' Payment failed: Incomplete or missing configuration.'));
+        $this->_redirect('checkout/onepage', ['_secure' => TRUE]);
+      }
+      Mage::Log(__FUNCTION__ . ': siteId=' . $siteId . ' apiKey=' . $apiKey . ' url=' . $url, Zend_Log::DEBUG, $this->logFileName);
 
-            Mage::log("Transaction-order ID: " . ($rmTranid . "-". $orderId), Zend_Log::DEBUG, $this->LOG_FILE_NAME);
+      /* Extract the billind and shipping addresses. */
+      $billingAddress = $order->getBillingAddress();
+      $shippingAddress = $order->getShippingAddress();
 
-            $ver = explode('.', phpversion());
-            $major = (int) $ver[0];
-            $minor = (int) $ver[1];
-            if($major >= 5 and $minor >= 4){
-                ksort($data, SORT_STRING | SORT_FLAG_CASE);
-            }
-            else{
-                uksort($data, 'strcasecmp');
-            }
+      /* Extract the customer details. */
+      $customer = [ 'identifier' => (0 == $billingAddress->getCustomerId()) ? ('p_' . $orderId . '_' . date('YmdHis')) : ('p_' . $billingAddress->getCustomerId() . '_' . date('YmdHis'))
+                  , 'firstName' => ($billingAddress->getFirstname()) ? ($billingAddress->getFirstname()) : ($shippingAddress->getFirstname())
+                  , 'lastName' => ($billingAddress->getLastname()) ? ($billingAddress->getLastname()) : ($shippingAddress->getLastname())
+                  , 'country' => ($billingAddress->getCountryId()) ? ($billingAddress->getCountryId()) : ($shippingAddress->getCountryId())
+                  // , 'state' => (('US' == $billingAddress->getCountryId()) && (NULL != $billingAddress->getRegionCode())) ? ($billingAddress->getRegionCode()) : ((('US' == $shippingAddress->getCountryId()) && (NULL != $shippingAddress->getRegionCode())) ? ($shippingAddress->getRegionCode()) : (''))
+                  , 'city' => ($billingAddress->getCity()) ? ($billingAddress->getCity()) : ($shippingAddress->getCity())
+                  , 'address' => ($billingAddress->getStreet()) ? ($billingAddress->getStreet()) : ($shippingAddress->getStreet())
+                  , 'zipCode' => ($billingAddress->getPostcode()) ? ($billingAddress->getPostcode()) : ($shippingAddress->getPostcode())
+                  , 'phone' => ($billingAddress->getTelephone()) ? ('+' . preg_replace('/([^0-9]*)+/', '', $billingAddress->getTelephone())) : (($shippingAddress->getTelephone()) ? ('+' . preg_replace('/([^0-9]*)+/', '', $shippingAddress->getTelephone())) : (''))
+                  , 'email' => ($billingAddress->getEmail()) ? ($billingAddress->getEmail()) : ($shippingAddress->getEmail())
+                  /* , 'tags' => [] */
+                  ];
 
-            $message = implode('|', $data);
+      /* Extract the items details. */
+      $items = array();
+      foreach($order->getAllItems() as $item){
+        $items[] = [ 'item' => $item->getName()
+                   , 'units' =>  (int) $item->getQtyOrdered()
+                   , 'unitPrice' => (string) number_format((float) $item->getPriceInclTax(), 2, '.', '')
+                   /* , 'type' => '' */
+                   /* , 'code' => '' */
+                   /* , 'vatPercent' => '' */
+                   /* , 'itemDescription' => '' */
+                   ];
+      }
 
-            $link = $url;
-            $payment = $order->getPayment();
-            $payment->setTransactionId($rmTranid); // Make it unique.
-            $transaction = $payment->addTransaction(Mage_Sales_Model_Order_Payment_Transaction::TYPE_AUTH,
-                                                    null,
-                                                    false,
-                                                    'OK');
-            $transaction->setAdditionalInformation(Mage_Sales_Model_Order_Payment_Transaction::RAW_DETAILS,
-                                                   array('Context'=>'Token payment',
-                                                         'Amount'=>$amount,
-                                                         'Status'=>0,
-                                                         'Url'=>$link));
-            $transaction->setIsTransactionClosed(false); // Close the transaction on return?
-            $transaction->save();
-            $order->save();
+      /* Check if shiping price needs to be added. */
+      if(0 < $order->getShippingAmount()){
+        $items[] = [ 'item' => "Transport"
+                   , 'units' =>  1
+                   , 'unitPrice' => (string) number_format((float) $order->getShippingAmount(), 2, '.', '')
+                   ];
+      }
 
-            $block = $this->getLayout()->createBlock('Mage_Core_Block_Template', 'tpay', array('template' => 'tpay/redirect.phtml'))
-                          ->assign(array_merge($data, array('url'=>$url)));
-            $this->getLayout()->getBlock('content')->append($block);
-            $this->renderLayout();
-        } catch (Exception $e){
-            Mage::logException($e);
-            Mage::log($e, Zend_Log::ERR, $this->LOG_FILE_NAME);
-            parent::_redirect('checkout/cart');
-        }
+      /* Construct the backUrl. */
+      $backUrl =  Mage::getBaseUrl() . "tpay/payment/response";
+
+      /* Calculate the order amount. */
+      $amount = $order->getGrandTotal();
+      $index = strpos($amount, '.');
+      if(FALSE !== $index){
+        $amount = substr($amount, 0, $index + 3);
+      }
+
+      /* Build the data object to be posted to Twispay. */
+      $orderData = [ 'siteId' => $siteId
+                   , 'customer' => $customer
+                   , 'order' => [ 'orderId' => $orderId
+                                , 'type' => 'purchase'
+                                , 'amount' => $amount
+                                , 'currency' => $order->getOrderCurrencyCode()
+                                , 'items' => $items
+                                /* , 'tags' => [] */
+                                /* , 'intervalType' => '' */
+                                /* , 'intervalValue' => 1 */
+                                /* , 'trialAmount' => 1 */
+                                /* , 'firstBillDate' => '' */
+                                /* , 'level3Type' => '', */
+                                /* , 'level3Airline' => [ 'ticketNumber' => '' */
+                                /*                      , 'passengerName' => '' */
+                                /*                      , 'flightNumber' => '' */
+                                /*                      , 'departureDate' => '' */
+                                /*                      , 'departureAirportCode' => '' */
+                                /*                      , 'arrivalAirportCode' => '' */
+                                /*                      , 'carrierCode' => '' */
+                                /*                      , 'travelAgencyCode' => '' */
+                                /*                      , 'travelAgencyName' => ''] */
+                                ]
+                   , 'cardTransactionMode' => 'authAndCapture'
+                   /* , 'cardId' => 0 */
+                   , 'invoiceEmail' => ''
+                   , 'backUrl' => $backUrl
+                   /* , 'customData' => [] */
+      ];
+
+      /* Encode the data and calculate the checksum. */
+      $base64JsonRequest = Mage::helper('tpay')->getBase64JsonRequest($orderData);
+      Mage::Log(__FUNCTION__ . ': base64JsonRequest=' . $base64JsonRequest, Zend_Log::DEBUG, $this->logFileName);
+      $base64Checksum = Mage::helper('tpay')->getBase64Checksum($orderData, $apiKey);
+      Mage::Log(__FUNCTION__ . ': base64Checksum=' . $base64Checksum, Zend_Log::DEBUG, $this->logFileName);
+
+      /* Send the data to the redirect block and render the complete layout. */
+      $block = $this->getLayout()->createBlock('Mage_Core_Block_Template', 'tpay', ['template' => 'tpay/redirect.phtml']);
+
+      Mage::register('url', $url);
+      Mage::register('jsonRequest', $base64JsonRequest);
+      Mage::register('checksum', $base64Checksum);
+
+      $this->getLayout()->getBlock('content')->append($block);
+      $this->renderLayout();
+
+    } catch (Exception $exception) {
+      Mage::logException($exception);
+      Mage::log(__FUNCTION__ . $exception, Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
+      parent::_redirect('checkout/cart');
+    }
+  }
+
+
+  /**
+   * Function that populates the message that needs to be sent to the server
+   *  for a recurring profile purchase.
+   * 
+   * @return void
+   */
+  public function profileAction(){
+    try{
+      Mage::Log(__FUNCTION__ . ': ' . Mage::helper('tpay')->__(' Extract the recurring profile details to send to Twispay server.'), Zend_Log::NOTICE, $this->logFileName);
+      $this->loadLayout();
+
+      /* Get profileId and extract the recurring profile. */
+      $profileId = Mage::app()->getRequest()->getParams()['profileId'];
+      $profile = Mage::getModel('sales/recurring_profile')->load($profileId);
+      Mage::Log(__FUNCTION__ . ': profileId=' . $profileId, Zend_Log::DEBUG, $this->logFileName);
+
+      /* Set recurring profile status to payment pending. */
+      $profile->setStatus(Mage_Sales_Model_Recurring_Profile::STATE_PENDING);
+      $profile->save();
+
+      /* Create recurring profile child order. */
+      Mage::helper('tpay')->createRecurringProfileChildOrder($profile);
+
+      /* Get the config values. */
+      $siteId = Mage::helper('tpay')->getSiteId();
+      $apiKey = Mage::helper('tpay')->getApiKey();
+      $url = Mage::helper('tpay')->getUrl();
+
+      if(('' == $siteId) || ('' == $apiKey)){
+        Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__(' Payment failed: Incomplete or missing configuration.'));
+        $this->_redirect('checkout/onepage', ['_secure' => TRUE]);
+      }
+      Mage::Log(__FUNCTION__ . ': siteId=' . $siteId . ' apiKey=' . $apiKey . ' url=' . $url, Zend_Log::DEBUG, $this->logFileName);
+
+      /* Extract the billind and shipping addresses. */
+      $billingAddress = $profile->getBillingAddressInfo();
+      $shippingAddress = $profile->getShippingAddressInfo();
+
+      /* Extract the customer details. */
+      $customer = [ 'identifier' => ('' == $billingAddress['customer_id']) ? ('r_' . $profileId . '_' . date('YmdHis')) : ('r_' . $billingAddress['customer_id'] . '_' . date('YmdHis'))
+                  , 'firstName' => ($billingAddress['firstname']) ? ($billingAddress['firstname']) : ($shippingAddress['firstname'])
+                  , 'lastName' => ($billingAddress['lastname']) ? ($billingAddress['lastname']) : ($shippingAddress['lastname'])
+                  , 'country' => ($billingAddress['country_id']) ? ($billingAddress['country_id']) : ($shippingAddress['country_id'])
+                  // , 'state' => (('US' == $billingAddress->getCountryId()) && (NULL != $billingAddress->getRegionCode())) ? ($billingAddress->getRegionCode()) : ((('US' == $shippingAddress->getCountryId()) && (NULL != $shippingAddress->getRegionCode())) ? ($shippingAddress->getRegionCode()) : (''))
+                  , 'city' => ($billingAddress['city']) ? ($billingAddress['city']) : ($shippingAddress['city'])
+                  , 'address' => ($billingAddress['street']) ? (str_replace("\n", ' ', $billingAddress['street'])) : (str_replace("\n", ' ', $shippingAddress['street']))
+                  , 'zipCode' => ($billingAddress['postcode']) ? ($billingAddress['postcode']) : ($shippingAddress['postcode'])
+                  , 'phone' => ($billingAddress['telephone']) ? ('+' . preg_replace('/([^0-9]*)+/', '', $billingAddress['telephone'])) : (($shippingAddress['telephone']) ? ('+' . preg_replace('/([^0-9]*)+/', '', $shippingAddress['telephone'])) : (''))
+                  , 'email' => ($billingAddress['email']) ? ($billingAddress['email']) : ($shippingAddress['email'])
+                  /* , 'tags' => [] */
+                  ];
+
+      /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
+      /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! IMPORTANT !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
+      /* READ:  We presume that there will be ONLY ONE recurring profile product inside the order. */
+      /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
+      /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
+
+      /* Extract the recurring profile details. */
+      $profileData = $profile->getData();
+
+      /* Extract the trial price and the first billing date. */
+      $trialAmount = (array_key_exists('init_amount', $profileData)) ? ($profileData['trial_billing_amount'] * $profileData['trial_period_max_cycles'] + $profileData['init_amount']) : ($profileData['trial_billing_amount'] * $profileData['trial_period_max_cycles']);
+      $daysTillFirstBillDate = 0;
+      switch ($profileData['trial_period_unit']) {
+        case Mage_Payment_Model_Recurring_Profile::PERIOD_UNIT_WEEK:
+          $daysTillFirstBillDate = /*days/week*/7 * $profileData['trial_period_frequency'] * $profileData['trial_period_max_cycles'];
+          break;
+        case Mage_Payment_Model_Recurring_Profile::PERIOD_UNIT_SEMI_MONTH:
+          $daysTillFirstBillDate = /*days/week*/14 * $profileData['trial_period_frequency'] * $profileData['trial_period_max_cycles'];
+          break;
+        case Mage_Payment_Model_Recurring_Profile::PERIOD_UNIT_MONTH:
+          $daysTillFirstBillDate = /*days/week*/30 * $profileData['trial_period_frequency'] * $profileData['trial_period_max_cycles'];
+          break;
+        case Mage_Payment_Model_Recurring_Profile::PERIOD_UNIT_YEAR:
+          $daysTillFirstBillDate = /*days/week*/365 * $profileData['trial_period_frequency'] * $profileData['trial_period_max_cycles'];
+          break;
+        default:
+          /* We change nothing in case of DAYS. */
+          $daysTillFirstBillDate = $profileData['trial_period_frequency'] * $profileData['trial_period_max_cycles'];
+          break;
+      }
+
+      /* Check if the trial period is free. */
+      if ((0 == $trialAmount) && (0 < $daysTillFirstBillDate)) {
+        Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__(' Payment for order #%s canceled as free trial perios are not allowed.'));
+        $this->_redirect('checkout/onepage', ['_secure' => TRUE]);
+      }
+
+      $datetime = new DateTime('now');
+      $datetime->setTimezone(new DateTimezone(Mage::getStoreConfig('general/locale/timezone')));
+      $datetime->add(new DateInterval(/*period*/'P' . $daysTillFirstBillDate . /*days*/'D'));
+      $firstBillDate = $datetime->format('c');
+
+      /* Calculate the recurring profile's interval type and value. */
+      $intervalType = '';
+      $intervalValue = '';
+      switch ($profileData['period_unit']) {
+        case Mage_Payment_Model_Recurring_Profile::PERIOD_UNIT_WEEK:
+          /* Convert weeks to days. */
+          $intervalType = Mage_Payment_Model_Recurring_Profile::PERIOD_UNIT_DAY;
+          $intervalValue = /*days/week*/7 * $profileData['period_frequency'];
+          break;
+        case Mage_Payment_Model_Recurring_Profile::PERIOD_UNIT_SEMI_MONTH:
+          /* Convert 2 weeks to days. */
+          $intervalType = Mage_Payment_Model_Recurring_Profile::PERIOD_UNIT_DAY;
+          $intervalValue = /*days/week*/14 * $profileData['period_frequency'];
+          break;
+        case Mage_Payment_Model_Recurring_Profile::PERIOD_UNIT_YEAR:
+          /* Convert years to months. */
+          $intervalType = Mage_Payment_Model_Recurring_Profile::PERIOD_UNIT_MONTH;
+          $intervalValue = /*days/week*/12 * $profileData['period_frequency'];
+          break;
+        default:
+          /* We change nothing in case of DAYS and MONTHS */
+          $intervalType = $profileData['period_unit'];
+          $intervalValue = $profileData['period_frequency'];
+          break;
+      }
+
+      /* Construct the backUrl. */
+      $backUrl =  Mage::getBaseUrl() . "tpay/payment/response";
+
+      /* Build the data object to be posted to Twispay. */
+      $orderData = [ 'siteId' => $siteId
+                   , 'customer' => $customer
+                   , 'order' => [ 'orderId' => $profileId
+                                , 'type' => 'recurring'
+                                , 'amount' => number_format(floatval($profileData['billing_amount']), 2, '.', '') /* Total sum to pay per cycle. */
+                                , 'currency' => $profileData['currency_code']
+                                ]
+                   , 'cardTransactionMode' => 'authAndCapture'
+                   , 'invoiceEmail' => ''
+                   , 'backUrl' => $backUrl
+                   ];
+
+      /* Add the recurring profile data. */
+      $orderData['order']['intervalType'] = $intervalType;
+      $orderData['order']['intervalValue'] = $intervalValue;
+      if('0' != $trialAmount){
+          $orderData['order']['trialAmount'] = number_format(floatval($trialAmount), 2, '.', '');
+          $orderData['order']['firstBillDate'] = $firstBillDate;
+      }
+      $orderData['order']['description'] = $intervalValue . " " . $intervalType . " subscription " . $profileData['order_item_info']['name'];
+
+      /* Encode the data and calculate the checksum. */
+      $base64JsonRequest = Mage::helper('tpay')->getBase64JsonRequest($orderData);
+      Mage::Log(__FUNCTION__ . ': base64JsonRequest=' . $base64JsonRequest, Zend_Log::DEBUG, $this->logFileName);
+      $base64Checksum = Mage::helper('tpay')->getBase64Checksum($orderData, $apiKey);
+      Mage::Log(__FUNCTION__ . ': base64Checksum=' . $base64Checksum, Zend_Log::DEBUG, $this->logFileName);
+
+      /* Send the data to the redirect block and render the complete layout. */
+      $block = $this->getLayout()->createBlock( 'Mage_Core_Block_Template', 'tpay', ['template' => 'tpay/redirect.phtml']);
+
+      Mage::register('url', $url);
+      Mage::register('jsonRequest', $base64JsonRequest);
+      Mage::register('checksum', $base64Checksum);
+
+      $this->getLayout()->getBlock('content')->append($block);
+      $this->renderLayout();
+
+    } catch (Exception $exception) {
+      Mage::logException($exception);
+      Mage::log(__FUNCTION__ . $exception, Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
+      parent::_redirect('checkout/cart');
+    }
+  }
+
+
+  /**
+   * Function that processes the backUrl message of the server.
+   * 
+   * @return void
+   */
+  public function responseAction(){
+    Mage::Log(__FUNCTION__ . ': ' . Mage::helper('tpay')->__(' Process the backUrl response of the Twispay server.'), Zend_Log::NOTICE, $this->logFileName);
+
+    /* Get the config values. */
+    $apiKey = Mage::helper('tpay')->getApiKey();
+    Mage::Log(__FUNCTION__ . ': apiKey=' . $apiKey, Zend_Log::DEBUG, $this->logFileName);
+
+    if('' == $apiKey){
+      Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__(' Payment failed: Incomplete or missing configuration.'));
+      $this->_redirect('checkout/onepage/failure', ['_secure' => TRUE]);
     }
 
-    // Redirect from Twispay
-    // The response action is triggered when your gateway sends back a response after processing the customer's payment
-    public function responseAction() {
+    /* Get the server response. */
+    $response = $this->getRequest()->getPost('opensslResult', NULL);
+    /* Check that the 'opensslResult' POST param exists. */
+    if(NULL == $response){
+      /* Try to get the 'result' POST param. */
+      $response = $this->getRequest()->getPost('result', NULL);
+    }
+    /* Check that the 'result' POST param exists. */
+    if(NULL == $response){
+      $message = Mage::helper('tpay')->__(' NULL response received.');
+      Mage::log(__FUNCTION__ . $message, Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
+      Mage::getSingleton('core/session')->addError($message);
+      $this->_redirect('checkout/onepage/failure', ['_secure' => TRUE]);
+    }
 
-        Mage::log("Running response action", Zend_Log::DEBUG, $this->LOG_FILE_NAME); 
+    /* Decrypt the response. */
+    $decrypted = Mage::helper('tpay')->twispay_tw_decrypt_message(/*tw_encryptedResponse*/$response, /*secretKey*/$apiKey);
 
-        $storeId = Mage::app()->getStore()->getStoreId();
-        $storeCode = Mage::app()->getStore()->getCode();
-        Mage::log("Store ID and Code: $storeId | $storeCode", Zend_Log::DEBUG, $this->LOG_FILE_NAME);
+    if(FALSE == $decrypted){
+      $message = Mage::helper('tpay')->__(' Failed to decript the response.');
+      Mage::log(__FUNCTION__ . $message, Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
+      Mage::getSingleton('core/session')->addError($message);
+      $this->_redirect('checkout/onepage/failure', ['_secure' => TRUE]);
+    }
 
-        $response = $this->getRequest()->getPost('opensslResult');
+    /* Validate the decripted response. */
+    $orderValidation = Mage::helper('tpay')->twispay_tw_checkValidation($decrypted);
 
-        $api_key = Mage::getStoreConfig('payment/tpay/api_key', $storeId);
-        
-        
-        $result = null;
-        if ($response) {
-        	Mage::log("We got a response", Zend_Log::DEBUG, $this->LOG_FILE_NAME); 
-        	try {
+    if(FALSE == $orderValidation){
+      $message = Mage::helper('tpay')->__(' Failed to validate the response.');
+      Mage::log(__FUNCTION__ . $message, Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
+      Mage::getSingleton('core/session')->addError($message);
+      $this->_redirect('checkout/onepage/failure', ['_secure' => TRUE]);
+    }
 
-        		$result = $this->decryptResponse($response, $api_key);
+    /* Check if the response is for a recurring profile and extract the correct order. */
+    $order = NULL;
+    $profile = NULL;
+    if('r' == $decrypted['identifier'][0]){
+      $profile = Mage::getModel('sales/recurring_profile')->load($decrypted['externalOrderId']);
+      $order = Mage::helper('tpay')->getRecurringProfileChildOrder($profile);
+    } else {
+      $order = Mage::getModel('sales/order')->loadByIncrementId($decrypted['externalOrderId']);
+    }
 
-        		if ($result != null) {
-        			$result = json_decode($result);
-        			Mage::log(print_r($result, true), Zend_Log::DEBUG, $this->LOG_FILE_NAME);
-        			
-        			
-        			
-        			
-        			 
-        		} else {
-        			Mage::log("Decoded response is NULL", Zend_Log::DEBUG, $this->LOG_FILE_NAME); 
-        					
-        		}
-        
-        	} catch (LocalizedException $ex) {
-        		Mage::log($ex->getMessage(), Zend_Log::DEBUG, $this->LOG_FILE_NAME); 
-        				
-        	}
+    /* Update the recurring profile status. */
+    $statusUpdate = Mage::helper('tpay')->updateStatus_backUrl( $profile
+                                                              , $order
+                                                              , $decrypted['orderId']
+                                                              , $decrypted['transactionId']
+                                                              , /*status*/(empty($decrypted['status'])) ? ($decrypted['transactionStatus']) : ($decrypted['status'])
+                                                              , $decrypted['identifier'][0]);
+
+    /* Redirect user to propper checkout page. */
+    if (TRUE == $statusUpdate) {
+      /* Check if a transaction with the same ID exists. */
+      $transactions = Mage::getModel('sales/order_payment_transaction')->getCollection()->addOrderIdFilter($order->getId());
+
+      /* Check if the transaction has already been registered. */
+      $skipTransactionAdd = FALSE;
+      foreach ($transactions as $transaction) {
+        if($decrypted['transactionId'] == $transaction->getTxnId()){
+          $skipTransactionAdd = TRUE;
+          break;
         }
-        else
-        {
+      }
 
-        	Mage::log("response(opensslResult) is null", Zend_Log::DEBUG, $this->LOG_FILE_NAME);
-        	 
-        }
-        
-        if ($result && isset($result->status) && ($result->status == 'complete-ok' || $result->status == 'in-progress')) {
-        
-        	// Set the status of this order to processing
-        	$orderId = $result->externalOrderId;
-        	$status = $result->status;
-        	Mage::log("Status: $status| Payment ID: $orderId", Zend_Log::DEBUG, $this->LOG_FILE_NAME);
-        	
-        	try {
+      if (FALSE == $skipTransactionAdd) {
+        if('p' == $decrypted['identifier'][0]){
+          /* Save the payment transaction. */
+          Mage::helper('tpay')->addOrderTransaction($order, /*serverResponse*/$decrypted);
 
-        	$order = Mage::getModel('sales/order')->loadByIncrementId($orderId);
-        	$order->setState(Mage_Sales_Model_Order::STATE_PROCESSING, true);
-        	$order->setStatus(Mage_Sales_Model_Order::STATE_PROCESSING);
-        	$order->addStatusToHistory($order->getStatus(), 'Order paid successfully with reference '.$result->transactionId);
-        	$order->save();
-        	} catch (LocalizedException $ex) {
-        		Mage::log($ex->getMessage(), Zend_Log::DEBUG, $this->LOG_FILE_NAME);
-        	
-        	}
-        
-        	Mage::log("Payment has been successfully authorized. Transaction id: $result->transactionId", Zend_Log::DEBUG, $this->LOG_FILE_NAME); 
-        			
-        
-        	$this->_redirect('checkout/onepage/success', array('_secure'=>true));
+          /* Link transaction to existing invoice. */
+          Mage::helper('tpay')->addPurchaseInvoice($order, $decrypted['transactionId']);
         } else {
-        	Mage::log("Failed to complete payment for $result->transactionId", Zend_Log::DEBUG, $this->LOG_FILE_NAME); 
-        			
-        	$this->_redirect('checkout/onepage/failure', array('_secure'=>true));
+          try {
+            /* Save the payment transaction. */
+            Mage::helper('tpay')->addOrderTransaction($order, /*serverResponse*/$decrypted);
+
+            /* Identify the invoice case and create new invoice for transaction. */
+            if((0 == $transactions->count()) && (0 < $profile->getTrialBillingAmount())) {
+              /* Invoice for init + trial period. */
+              Mage::helper('tpay')->addTrialInvoice($order, $decrypted['transactionId']);
+            } else {
+              /* Invoice normal period. */
+              Mage::helper('tpay')->addNormalInvoice($order, $decrypted['transactionId']);
+            }
+
+          } catch (Exception $exception) {
+            Mage::logException($exception);
+            Mage::log(__FUNCTION__ . $exception, Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
+          }
         }
-    }
-        
-        // Server-2-server page for Twispay to re-send payment information
-        // The server action is triggered when your gateway sends back a response after processing the customer's payment
-        public function serverAction() {
-        
-        	Mage::log("Running Server-2-server action", Zend_Log::DEBUG, $this->LOG_FILE_NAME);
-        
-        	$storeId = Mage::app()->getStore()->getStoreId();
-        	$storeCode = Mage::app()->getStore()->getCode();
-        	Mage::log("Store ID and Code: $storeId | $storeCode", Zend_Log::DEBUG, $this->LOG_FILE_NAME);
-        
-        	$response = $this->getRequest()->getPost('opensslResult');
-        
-        	$api_key = Mage::getStoreConfig('payment/tpay/api_key', $storeId);
-        
-        	$result = null;
-        	if ($response) {
-        		try {
-        
-        			$result = $this->decryptResponse($response, $api_key);
-        
-        			if ($result != null) {
-        				$result = json_decode($result);
-        			} else {
-        				Mage::log("Decoded response is NULL", Zend_Log::DEBUG, $this->LOG_FILE_NAME);
-        				 
-        			}
-        
-        		} catch (LocalizedException $ex) {
-        			Mage::log($ex->getMessage(), Zend_Log::DEBUG, $this->LOG_FILE_NAME);
-        
-        		}
-        	}
-        
-        	if ($result && isset($result->status) && ($result->status == 'complete-ok' || $result->status == 'in-progress')) {
-        
-        		// Set the status of this order to processing
-        		$orderId = $result->externalOrderId;
-        		$status = $result->status;
-        		Mage::log("Status: $status| Payment ID: $orderId", Zend_Log::DEBUG, $this->LOG_FILE_NAME);
-        		 
-        		try {
-        
-        			$order = Mage::getModel('sales/order')->loadByIncrementId($orderId);
-        			$order->setState(Mage_Sales_Model_Order::STATE_PROCESSING, true);
-        			$order->setStatus(Mage_Sales_Model_Order::STATE_PROCESSING);
-        			$order->addStatusToHistory($order->getStatus(), 'Order paid successfully with reference '.$result->transactionId);
-        			$order->save();
-        		} catch (LocalizedException $ex) {
-        			Mage::log($ex->getMessage(), Zend_Log::DEBUG, $this->LOG_FILE_NAME);
-        			 
-        		}
-        
-        		Mage::log("Payment has been successfully authorized. Transaction id: $result->transactionId", Zend_Log::DEBUG, $this->LOG_FILE_NAME);
-        		 
-        
-        	} else {
-        		Mage::log("Failed to complete payment for $result->transactionId", Zend_Log::DEBUG, $this->LOG_FILE_NAME);
-        		 
-        	}
-       
-        
-    }
-    /**
-     * This method computes the checksum on the given data array
-     *
-     * @param string $encrypted
-     * @return array the decrypted response
-     */
-    public function decryptResponse($encrypted, $apiKey) {
-    
-    	$encrypted = (string)$encrypted;
-    	if (!strlen($encrypted)) {
-    		return null;
-    	}
-    
-    	if (strpos($encrypted, ',') !== false) {
-    		$encryptedParts = explode(',', $encrypted, 2);
-    		$iv = base64_decode($encryptedParts[0]);
-    		if (false === $iv) {
-    			throw new LocalizedException("Invalid encryption iv");
-    		}
-    		$encrypted = base64_decode($encryptedParts[1]);
-    		if (false === $encrypted) {
-    			throw new LocalizedException("Invalid encrypted data");
-    		}
-    		$decrypted = openssl_decrypt($encrypted, 'AES-256-CBC', $apiKey, OPENSSL_RAW_DATA, $iv);
-    		if (false === $decrypted) {
-    			throw new LocalizedException("Data could not be decrypted");
-    		}
-    
-    		return $decrypted;
-    	}
-    
-    	return null;
-    }
-    
-    /**
-     * This method computes the checksum on the given data array
-     *
-     * @param array $data
-     * @return string the computed checksum
-     */
-    public function computeChecksum(array &$data, $apiKey) {
-    
-    	// Sort the keys in the object alphabetically
-    	$this->recursiveKeySort($data);
-    
-    
-    	// Build an encoded HTTP query string from the data
-    	$query = http_build_query($data);
-    
-    	// Encrypt the query string with SHA-512 algorithm
-    	$encoded = hash_hmac('sha512', $query, $apiKey, true);
-    
-    	$checksum = base64_encode($encoded);
-    
-    	return $checksum;
-    }
-    
+      }
 
-    /**
-     * Sort the array based on the keys
-     * @param array $data
-     */
-    private function recursiveKeySort(array &$data) {
-    	ksort($data, SORT_STRING);
-    	foreach ($data as $key => $value) {
-    		if (is_array($value)) {
-    			$this->recursiveKeySort($data[$key]);
-    		}
-    	}
+      $this->_redirect('checkout/onepage/success', ['_secure' => TRUE]);
+    } else {
+      /* Add the contact email to the magento registry. The value can be NULL = ''. */
+      Mage::getSingleton('core/session')->setContactEmail(Mage::helper('tpay')->getContactEmail());
+
+      $this->_redirect('checkout/onepage/failure', ['_secure' => TRUE]);
+    }
+  }
+
+
+  /**
+   * Function that processes the IPN (Instant Payment Notification) message of the server.
+   * 
+   * @return void
+   */
+  public function serverAction(){
+    Mage::Log(__FUNCTION__ . ': ' . Mage::helper('tpay')->__(' Process the IPN response of the Twispay server.'), Zend_Log::NOTICE, $this->logFileName);
+
+    /* Get the config values. */
+    $apiKey = Mage::helper('tpay')->getApiKey();
+    Mage::Log(__FUNCTION__ . ': apiKey=' . $apiKey, Zend_Log::DEBUG, $this->logFileName);
+
+    if('' == $apiKey){
+      $message = Mage::helper('tpay')->__(' Payment failed: Incomplete or missing configuration.');
+      Mage::log(__FUNCTION__ . $message, Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
+      $this->getResponse()->setBody($message);
+      return;
     }
 
-} 
+    /* Check if we received a response. */
+    if( (FALSE == isset($_POST['opensslResult'])) && (FALSE == isset($_POST['result'])) ) {
+      $message = Mage::helper('tpay')->__(' NULL response received.');
+      Mage::log(__FUNCTION__ .  $message, Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
+      $this->getResponse()->setBody($message);
+      return;
+    }
+
+    /* Get the server response. */
+    $response = (isset($_POST['opensslResult'])) ? ($_POST['opensslResult']) : ($_POST['result']);
+
+    /* Decrypt the response. */
+    $decrypted = Mage::helper('tpay')->twispay_tw_decrypt_message(/*tw_encryptedResponse*/$response, /*secretKey*/$apiKey);
+
+    if(FALSE == $decrypted){
+      $message = Mage::helper('tpay')->__(' Failed to decript the response.');
+      Mage::log(__FUNCTION__ . $message, Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
+      $this->getResponse()->setBody($message);
+      return;
+    }
+
+    /* Validate the decripted response. */
+    $orderValidation = Mage::helper('tpay')->twispay_tw_checkValidation($decrypted);
+
+    if(TRUE !== $orderValidation){
+      $message = Mage::helper('tpay')->__(' Failed to validate the response.');
+      Mage::log(__FUNCTION__ . $message, Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
+      $this->getResponse()->setBody($message);
+      return;
+    }
+
+    /* Check if the response is for a recurring profile and extract the correct order. */
+    $order = NULL;
+    $profile = NULL;
+    if('r' == $decrypted['identifier'][0]){
+      $profile = Mage::getModel('sales/recurring_profile')->load($decrypted['externalOrderId']);
+      $order = Mage::helper('tpay')->getRecurringProfileChildOrder($profile);
+    } else {
+      $order = Mage::getModel('sales/order')->loadByIncrementId($decrypted['externalOrderId']);
+    }
+
+    $statusUpdate = Mage::helper('tpay')->updateStatus_IPN( $profile
+                                                          , $order
+                                                          , $decrypted['orderId']
+                                                          , $decrypted['transactionId']
+                                                          , /*status*/(empty($decrypted['status'])) ? ($decrypted['transactionStatus']) : ($decrypted['status'])
+                                                          , $decrypted['identifier'][0]);
+
+    if (TRUE == $statusUpdate) {
+      /* Check if a transaction with the same ID exists. */
+      $transactions = Mage::getModel('sales/order_payment_transaction')->getCollection()->addOrderIdFilter($order->getId());
+
+      /* Check if the transaction has already been registered. */
+      $skipTransactionAdd = FALSE;
+      foreach ($transactions as $transaction) {
+        if($decrypted['transactionId'] == $transaction->getTxnId()){
+          $skipTransactionAdd = TRUE;
+          break;
+        }
+      }
+
+      if (FALSE == $skipTransactionAdd) {
+        if('p' == $decrypted['identifier'][0]){
+          /* Save the payment transaction. */
+          Mage::helper('tpay')->addOrderTransaction($order, /*serverResponse*/$decrypted);
+
+          /* Link transaction to existing invoice. */
+          Mage::helper('tpay')->addPurchaseInvoice($order, $decrypted['transactionId']);
+        } else {
+          try {
+            /* Save the payment transaction. */
+            Mage::helper('tpay')->addOrderTransaction($order, /*serverResponse*/$decrypted);
+
+            /* Identify the invoice case and create new invoice for transaction. */
+            if((0 == $transactions->count()) && (0 < $profile->getTrialBillingAmount())) {
+              /* Invoice for init + trial period. */
+              Mage::helper('tpay')->addTrialInvoice($order, $decrypted['transactionId']);
+            } else {
+              /* Invoice normal period. */
+              Mage::helper('tpay')->addNormalInvoice($order, $decrypted['transactionId']);
+            }
+          } catch (Exception $exception) {
+            Mage::logException($exception);
+            Mage::log(__FUNCTION__ . $exception, Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
+          }
+        }
+      }
+    }
+
+    /* ADD AUTOMATIC CANCEL */
+    /* Extract transactions again in order to include the last one that may have been added. */
+    $transactions = Mage::getModel('sales/order_payment_transaction')->getCollection()->addOrderIdFilter($order->getId());
+
+    /* Calculate the max number of payments for this recurring profile. */
+    $maxPaymentCycles = (1 <= $profile->getTrialPeriodMaxCycles()) ? ($profile->getPeriodMaxCycles() + 1) : ($profile->getPeriodMaxCycles());
+
+    if($transactions->count() == $maxPaymentCycles){
+      /* Cancel the recurring profile. */
+      Mage::helper('tpay')->cancelRecurringProfile($profile, $order, 'Automatic cancel.');
+    }
+
+    $this->getResponse()->setBody('OK');
+  }
+}
