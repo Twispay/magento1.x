@@ -664,7 +664,7 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
   public function twispay_tw_decrypt_message($tw_encryptedMessage, $tw_secretKey) {
     $encrypted = (string)$tw_encryptedMessage;
 
-    if(!strlen($encrypted) || (FALSE == strpos($encrypted, ','))) {
+    if(!strlen($encrypted) || (FALSE === strpos($encrypted, ','))) {
       return FALSE;
     }
 
