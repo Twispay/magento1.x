@@ -159,7 +159,7 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
       $this->loadLayout();
 
       /* Get profileId and extract the recurring profile. */
-      $profileId = Mage::app()->getRequest()->getParams()['profileId'];
+      $profileId = Mage::app()->getRequest()->getParam('profileId');
       $profile = Mage::getModel('sales/recurring_profile')->load($profileId);
       Mage::Log(__FUNCTION__ . ': profileId=' . $profileId, Zend_Log::DEBUG, $this->logFileName);
 
@@ -458,7 +458,7 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
     }
 
     /* Check if we received a response. */
-    if( (FALSE == isset($_POST['opensslResult'])) && (FALSE == isset($_POST['result'])) ) {
+    if( (NULL === Mage::app()->getRequest()->getParam('opensslResult')) && (NULL === Mage::app()->getRequest()->getParam('result')) ) {
       $message = Mage::helper('tpay')->__(' NULL response received.');
       Mage::log(__FUNCTION__ .  $message, Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
       $this->getResponse()->setBody($message);
@@ -466,7 +466,7 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
     }
 
     /* Get the server response. */
-    $response = (isset($_POST['opensslResult'])) ? ($_POST['opensslResult']) : ($_POST['result']);
+    $response = (NULL !== Mage::app()->getRequest()->getParam('opensslResult')) ? (Mage::app()->getRequest()->getParam('opensslResult')) : (Mage::app()->getRequest()->getParam('result'));
 
     /* Decrypt the response. */
     $decrypted = Mage::helper('tpay')->twispay_tw_decrypt_message(/*tw_encryptedResponse*/$response, /*secretKey*/$apiKey);
