@@ -12,9 +12,9 @@
     }
   } else {
     if(0 == Mage::helper('checkout/cart')->getItemsCount()){
-      ?> <p><?= Mage::helper('tpay')->__('The payment could not be processed for order %s. Please <a href="%s">make</a> a new order or contact the website administrator._url', $this->getRealOrderId(), Mage::getBaseUrl(Mage_Core_Model_Store::URL_TYPE_WEB), Mage::getSingleton('core/session')->getContactEmail()) ?></p> <?php
+      ?> <p><?= Mage::helper('tpay')->__('The payment could not be processed for order %s. Please <a href="%s">make</a> a new order or contact the website <a href="mailto:%s">administrator</a>.', $this->getRealOrderId(), Mage::getBaseUrl(Mage_Core_Model_Store::URL_TYPE_WEB), Mage::getSingleton('core/session')->getContactEmail()) ?></p> <?php
     } else {
-      ?> <p><?= Mage::helper('tpay')->__('The payment could not be processed for order %s. Please <a href="%s">try again</a> or contact the website administrator._url', $this->getRealOrderId(), Mage::helper('core')->quoteEscape($this->getContinueShoppingUrl()), Mage::getSingleton('core/session')->getContactEmail()) ?></p> <?php
+      ?> <p><?= Mage::helper('tpay')->__('The payment could not be processed for order %s. Please <a href="%s">try again</a> or contact the website <a href="mailto:%s">administrator</a>.', $this->getRealOrderId(), Mage::helper('core')->quoteEscape($this->getContinueShoppingUrl()), Mage::getSingleton('core/session')->getContactEmail()) ?></p> <?php
     }
 
     /* Remove session variable. */
