@@ -244,7 +244,7 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
 
       /* Check if the trial period is free. */
       if ((0 == $trialAmount) && (0 < $daysTillFirstBillDate)) {
-        Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__(' Payment for order #%s canceled as free trial perios are not allowed.'));
+        Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__(' Payment for order #%s canceled as free trial period are not allowed.'));
         $this->_redirect('checkout/onepage', ['_secure' => TRUE]);
       }
 

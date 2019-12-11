@@ -29,7 +29,7 @@ We take pride in offering world class, free customer support to all our merchant
 ## Installation
 The easiest way of installing our module is by visiting the [official module page](https://marketplace.magento.com/twispay-twispay-tpay.html).
 Alternatively, you can check out our [installation guide](#) for detailed step by step instructions.
-1. Login to the official Magento webssite and [login](https://account.magento.com/customer/account/login)
+1. Login to the official Magento website and [login](https://account.magento.com/customer/account/login)
 2. Access the [marketplace](https://marketplace.magento.com/)
 3. Search for the **twispay** keyword
 4. Open [Twispay Credit Card Payments](https://marketplace.magento.com/twispay-twispay-tpay.html) for **Magento 1**
@@ -40,7 +40,7 @@ Alternatively, you can check out our [installation guide](#) for detailed step b
 9. Login to your **Magento 1** admin panel
 10. Go to **System** -> **Magento Connect** -> **Magento Connect Manager**
 11. Re-enter you **administrator credentials** and login
-12. Paste the copied **Access Key** inside the **Paste extention key to install** and click on the **Install** button
+12. Paste the copied **Access Key** inside the **Paste extension key to install** and click on the **Install** button
 13. Wait for the installation to finish
 14. Go back to your **Magento 1** admin panel by clicking on the **Return to Admin** link
 15. Go to **System** -> **Configuration**
@@ -48,7 +48,7 @@ Alternatively, you can check out our [installation guide](#) for detailed step b
 17. Select **Yes** under **Live mode**. _(Unless you are testing)_
 18. Enter your **Site ID**. _(You can get one from [here for live](https://merchant.twispay.com/login) or from [here for stage](https://merchant-stage.twispay.com/login))_
 19. Enter your **Private Key**. _(You can get one from [here for live](https://merchant.twispay.com/login) or from [here for stage](https://merchant-stage.twispay.com/login))_
-20. Enter your tehnical **Contact Email**. _(This will be displayed to customers in case of a payment error)_
+20. Enter your support **Contact Email**. _(This will be displayed to customers in case of a payment error)_
 21. Save your changes.
 
 ## Changelog

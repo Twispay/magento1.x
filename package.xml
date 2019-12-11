@@ -20,7 +20,7 @@ Added methods and config option for authorize and capture payment steps.&#xD;
 Added functionality to create a transaction after each successful payment.&#xD;
 Added purchase order type refund and partial refund support.&#xD;
 Added recurring order type refund and partial refund support.&#xD;
-Added daily sync with the Twispay server for recurring profiles.</notes>
+Added daily sync with the Twispay server for recurring profiles.
 Improved the 'form' template.&#xD;
 Personalized the orders identifier to make it more framework specific.&#xD;
 Ensured that the "orderId" sent inside the request payment is always unique.&#xD;
