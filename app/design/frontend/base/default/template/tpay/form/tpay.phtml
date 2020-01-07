@@ -1,7 +1,13 @@
-<div class="brands-container">
-  <img src="<?php echo $this->getSkinUrl('images/tpay/visa.svg')?>" height="36" border="0" alt="" style="display: inline; margin-right: 5px;">
-  <img src="<?php echo $this->getSkinUrl('images/tpay/mastercard.svg')?>" height="36" border="0" alt="" style="display: inline; margin-right: 5px;">
-  <img src="<?php echo $this->getSkinUrl('images/tpay/secure.svg')?>" height="36" border="0" alt="" style="display: inline; margin-left: 100px;">
-  <img src="<?php echo $this->getSkinUrl('images/tpay/twispay.svg')?>" height="36" border="0" alt="" style="display: inline;">
-</div>
-        
+<ul class="form-list checkout-agreements" id="payment_form_<?php echo $this->getMethodCode() ?>" style="display:none;">
+  <li>
+    <?php Mage::helper('tpay')->__('You will be redirected to our secure payment page when you place an order.') ?>
+  </li>
+  <li>
+    <div class="brands-container" style="padding:10px 15px 15px;">
+      <img src="<?php echo $this->getSkinUrl('images/tpay/visa.svg')?>" height="36" border="0" alt="" style="display: inline; margin-right: 5px;">
+      <img src="<?php echo $this->getSkinUrl('images/tpay/mastercard.svg')?>" height="36" border="0" alt="" style="display: inline; margin-right: 5px;">
+      <img src="<?php echo $this->getSkinUrl('images/tpay/secure.svg')?>" height="36" border="0" alt="" style="display: inline; margin-left: 100px;">
+      <img src="<?php echo $this->getSkinUrl('images/tpay/twispay.svg')?>" height="36" border="0" alt="" style="display: inline;">
+    </div>
+  </li>
+</ul>

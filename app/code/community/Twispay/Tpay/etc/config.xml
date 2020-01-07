@@ -57,9 +57,11 @@
             </tpay>
         </helpers>
     </global>
+
     <default>
         <payment>
             <tpay>
+                <title>Twispay</title>
                 <model>tpay/PaymentMethod</model>
                 <payment_action>authorize_capture</payment_action>
                 <liveMode>0</liveMode>
@@ -72,6 +74,7 @@
             </tpay>
         </payment>
     </default>
+
     <frontend>
         <routers>
             <tpay>

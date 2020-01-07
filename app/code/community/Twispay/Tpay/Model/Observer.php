@@ -5,12 +5,12 @@ class Twispay_Tpay_Model_Observer {
 
 
   /**
-   * 
+   *
    */
   public function checkoutSubmitAllFunction(Varien_Event_Observer $observer){
-    Mage::log(__FUNCTION__, Zend_Log::DEBUG, $this->logFileName);
+    Mage::log(__FUNCTION__, Zend_Log::NOTICE, $this->logFileName);
 
-    if(sizeof($observer->getEvent()->getData()['recurring_profiles'])){
+    if(0 < sizeof($observer->getEvent()->getData()['recurring_profiles'])){
       $recurringProfileId = $observer->getEvent()->getData()['recurring_profiles'][0]['profile_id'];
 
       if($recurringProfileId){
@@ -20,10 +20,12 @@ class Twispay_Tpay_Model_Observer {
         Mage::getSingleton('checkout/session')->setRedirectUrl($redirectUrl);
       }
     }
+
+    return $this;
   }
 
 
-  
+
 
   /**
    * Function that updates the statuses of the local recurring profile

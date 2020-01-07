@@ -8,7 +8,7 @@
  *       - decripting Twispay server responses;
  *       - validating Twispay server responses;
  *   - Status Update:
- *       - 
+ *       -
  */
 class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
 
@@ -92,7 +92,7 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
                             , Mage_Sales_Model_Order::STATE_PENDING_PAYMENT
                             , Mage::helper('tpay')->__(' Order #%s pended as payment for transaction #%s is pending.', $purchase->getIncrementId(), $transactionId));
 
-        Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status three-d-pending for order ID: ') . $purchase->getIncrementId(), Zend_Log::WARNING , $this->logFileName, /*forceLog*/TRUE);
+        Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status three-d-pending for order ID: ') . $purchase->getIncrementId(), Zend_Log::WARN , $this->logFileName, /*forceLog*/TRUE);
         Mage::getSingleton('core/session')->addWarning(Mage::helper('tpay')->__(' Payment pended for transaction #%s, order #%s.', $transactionId, $purchase->getIncrementId()));
         return FALSE;
       break;
@@ -199,7 +199,7 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
                             , Mage_Sales_Model_Order::STATE_PENDING_PAYMENT
                             , Mage::helper('tpay')->__(' Order #%s pended as payment for transaction #%s is pending.', $purchase->getIncrementId(), $transactionId));
 
-        Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status three-d-pending for order ID: ') . $purchase->getIncrementId(), Zend_Log::WARNING , $this->logFileName, /*forceLog*/TRUE);
+        Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status three-d-pending for order ID: ') . $purchase->getIncrementId(), Zend_Log::WARN , $this->logFileName, /*forceLog*/TRUE);
         return FALSE;
       break;
 
@@ -266,7 +266,7 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
                             , Mage_Sales_Model_Order::STATE_PENDING_PAYMENT
                             , Mage::helper('tpay')->__(' Order #%s pended as payment for transaction #%s is pending.', $recurringProfileChildOrder->getIncrementId(), $transactionId));
 
-        Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status three-d-pending for order ID: ') . $profile->getId(), Zend_Log::WARNING , $this->logFileName, /*forceLog*/TRUE);
+        Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status three-d-pending for order ID: ') . $profile->getId(), Zend_Log::WARN , $this->logFileName, /*forceLog*/TRUE);
         Mage::getSingleton('core/session')->addWarning(Mage::helper('tpay')->__(' Payment pended for transaction #%s, order #%s.', $transactionId, $profile->getId()));
         return FALSE;
       break;
@@ -410,7 +410,7 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
                             , Mage_Sales_Model_Order::STATE_PENDING_PAYMENT
                             , Mage::helper('tpay')->__(' Order #%s pended as payment for transaction #%s is pending.', $recurringProfileChildOrder->getIncrementId(), $transactionId));
 
-        Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status three-d-pending for order ID: ') . $profile->getId(), Zend_Log::WARNING , $this->logFileName, /*forceLog*/TRUE);
+        Mage::Log(__FUNCTION__ . Mage::helper('tpay')->__(' [RESPONSE]: Status three-d-pending for order ID: ') . $profile->getId(), Zend_Log::WARN , $this->logFileName, /*forceLog*/TRUE);
         return FALSE;
       break;
 
@@ -442,7 +442,7 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
 
 
   /************************** Config functions START **************************/
- /**
+  /**
    * Function that extracts the value of the "liveMode" from
    *  the config.
    */
@@ -518,7 +518,7 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
   /**
    * Function that extracts the status of an order from the
    *  Twisplay platform.
-   * 
+   *
    * @param orderId: The unique Twispay order ID of a recurring profile.
    *
    * @return string(server-status) In case of success.
@@ -564,7 +564,7 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
   /**
    * Function that cancels a recurring profile
    *  in the Twispay platform.
-   * 
+   *
    * @param profile: The recurring profile order for which to update the status.
    * @param recurringProfileChildOrder: Child order of the recurring profile.
    * @param message: The cancel reason.
@@ -692,6 +692,16 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
     /* Check if the decryption was successful. */
     if (NULL === $decodedResponse) {
       return FALSE;
+    }
+
+    /** Check if externalOrderId uses '_' separator */
+    if (FALSE !== strpos($decodedResponse['externalOrderId'], '_')) {
+      $explodedVal = explode('_', $decodedResponse['externalOrderId'])[0];
+
+      /** Check if externalOrderId contains only digits and is not empty. */
+      if (!empty($explodedVal) && ctype_digit($explodedVal)) {
+        $decodedResponse['externalOrderId'] = $explodedVal;
+      }
     }
 
     return $decodedResponse;
@@ -1014,8 +1024,13 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
   public function updateStatus_backUrl($profile, $order, $orderId, $transactionId, $serverStatus, $identifier){
     if('p' == $identifier){
       return $this->updateStatus_purchase_backUrl($order, $transactionId, $serverStatus);
-    } else {
+    } elseif ('r' == $identifier) {
       return $this->updateStatus_recurringProfile_backUrl($profile, $order, $orderId, $transactionId, $serverStatus);
+    } else {
+      $message = Mage::helper('tpay')->__(' Invalid order identifier.');
+      Mage::log(__FUNCTION__ . $message, Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
+      Mage::getSingleton('core/session')->addError($message);
+      $this->_redirect('checkout/onepage/failure', ['_secure' => TRUE]);
     }
   }
 
@@ -1038,8 +1053,13 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
   public function updateStatus_IPN($profile, $order, $orderId, $transactionId, $serverStatus, $identifier){
     if('p' == $identifier){
       return $this->updateStatus_purchase_IPN($order, $transactionId, $serverStatus);
-    } else {
+    } elseif ('r' == $identifier) {
       return $this->updateStatus_recurringProfile_IPN($profile, $order, $orderId, $transactionId, $serverStatus);
+    } else {
+      $message = Mage::helper('tpay')->__(' Invalid order identifier.');
+      Mage::log(__FUNCTION__ . $message, Zend_Log::ERR, $this->logFileName, /*forceLog*/TRUE);
+      Mage::getSingleton('core/session')->addError($message);
+      $this->_redirect('checkout/onepage/failure', ['_secure' => TRUE]);
     }
   }
 

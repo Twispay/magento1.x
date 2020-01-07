@@ -13,7 +13,7 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
   /**
    * Function that populates the JSON that needs to be sent to the server
    *  for a normal purchase.
-   * 
+   *
    * @return void
    */
   public function purchaseAction(){
@@ -47,8 +47,11 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
       $billingAddress = $order->getBillingAddress();
       $shippingAddress = $order->getShippingAddress();
 
+      /** Save the timestamp of this payment. */
+      $timestamp = date('YmdHis');
+
       /* Extract the customer details. */
-      $customer = [ 'identifier' => (0 == $billingAddress->getCustomerId()) ? ('p_' . $orderId . '_' . date('YmdHis')) : ('p_' . $billingAddress->getCustomerId() . '_' . date('YmdHis'))
+      $customer = [ 'identifier' => 'p_m1_' . ((0 == $billingAddress->getCustomerId()) ? ($orderId) : ($billingAddress->getCustomerId())) . '_' . $timestamp
                   , 'firstName' => ($billingAddress->getFirstname()) ? ($billingAddress->getFirstname()) : ($shippingAddress->getFirstname())
                   , 'lastName' => ($billingAddress->getLastname()) ? ($billingAddress->getLastname()) : ($shippingAddress->getLastname())
                   , 'country' => ($billingAddress->getCountryId()) ? ($billingAddress->getCountryId()) : ($shippingAddress->getCountryId())
@@ -82,22 +85,20 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
                    ];
       }
 
-      /* Construct the backUrl. */
-      $backUrl =  Mage::getBaseUrl() . "tpay/payment/response";
-
       /* Calculate the order amount. */
-      $amount = $order->getGrandTotal();
-      $index = strpos($amount, '.');
-      if(FALSE !== $index){
-        $amount = substr($amount, 0, $index + 3);
+      $amount = floatval($order->getGrandTotal());
+      /** Validate that the amount is greated than 0. */
+      if(0 <= $amount){
+        Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__(' The amount must be greater than zero for card payments.'));
+        $this->_redirect('checkout/onepage', ['_secure' => TRUE]);
       }
 
       /* Build the data object to be posted to Twispay. */
       $orderData = [ 'siteId' => $siteId
                    , 'customer' => $customer
-                   , 'order' => [ 'orderId' => $orderId
+                   , 'order' => [ 'orderId' => $orderId . '_' . $timestamp
                                 , 'type' => 'purchase'
-                                , 'amount' => $amount
+                                , 'amount' => number_format($amount, 2, '.', '')
                                 , 'currency' => $order->getOrderCurrencyCode()
                                 , 'items' => $items
                                 /* , 'tags' => [] */
@@ -119,7 +120,7 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
                    , 'cardTransactionMode' => 'authAndCapture'
                    /* , 'cardId' => 0 */
                    , 'invoiceEmail' => ''
-                   , 'backUrl' => $backUrl
+                   , 'backUrl' => Mage::getBaseUrl() . "tpay/payment/response"
                    /* , 'customData' => [] */
       ];
 
@@ -150,7 +151,7 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
   /**
    * Function that populates the message that needs to be sent to the server
    *  for a recurring profile purchase.
-   * 
+   *
    * @return void
    */
   public function profileAction(){
@@ -185,8 +186,11 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
       $billingAddress = $profile->getBillingAddressInfo();
       $shippingAddress = $profile->getShippingAddressInfo();
 
+      /** Save the timestamp of this payment. */
+      $timestamp = date('YmdHis');
+
       /* Extract the customer details. */
-      $customer = [ 'identifier' => ('' == $billingAddress['customer_id']) ? ('r_' . $profileId . '_' . date('YmdHis')) : ('r_' . $billingAddress['customer_id'] . '_' . date('YmdHis'))
+      $customer = [ 'identifier' => 'r_m1_' . ((0 == $billingAddress['customer_id']) ? ($profileId) : ($billingAddress['customer_id'])) . '_' . $timestamp
                   , 'firstName' => ($billingAddress['firstname']) ? ($billingAddress['firstname']) : ($shippingAddress['firstname'])
                   , 'lastName' => ($billingAddress['lastname']) ? ($billingAddress['lastname']) : ($shippingAddress['lastname'])
                   , 'country' => ($billingAddress['country_id']) ? ($billingAddress['country_id']) : ($shippingAddress['country_id'])
@@ -207,6 +211,14 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
 
       /* Extract the recurring profile details. */
       $profileData = $profile->getData();
+
+      /* Calculate the order amount. */
+      $amount = floatval($profileData['billing_amount']);
+      /** Validate that the amount is greated than 0. */
+      if(0 <= $amount){
+        Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__(' The amount must be greater than zero for card payments.'));
+        $this->_redirect('checkout/onepage', ['_secure' => TRUE]);
+      }
 
       /* Extract the trial price and the first billing date. */
       $trialAmount = (array_key_exists('init_amount', $profileData)) ? ($profileData['trial_billing_amount'] * $profileData['trial_period_max_cycles'] + $profileData['init_amount']) : ($profileData['trial_billing_amount'] * $profileData['trial_period_max_cycles']);
@@ -232,7 +244,7 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
 
       /* Check if the trial period is free. */
       if ((0 == $trialAmount) && (0 < $daysTillFirstBillDate)) {
-        Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__(' Payment for order #%s canceled as free trial perios are not allowed.'));
+        Mage::getSingleton('core/session')->addError(Mage::helper('tpay')->__(' Payment for order #%s canceled as free trial period are not allowed.'));
         $this->_redirect('checkout/onepage', ['_secure' => TRUE]);
       }
 
@@ -267,20 +279,17 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
           break;
       }
 
-      /* Construct the backUrl. */
-      $backUrl =  Mage::getBaseUrl() . "tpay/payment/response";
-
       /* Build the data object to be posted to Twispay. */
       $orderData = [ 'siteId' => $siteId
                    , 'customer' => $customer
-                   , 'order' => [ 'orderId' => $profileId
+                   , 'order' => [ 'orderId' => $profileId . '_' . $timestamp
                                 , 'type' => 'recurring'
-                                , 'amount' => number_format(floatval($profileData['billing_amount']), 2, '.', '') /* Total sum to pay per cycle. */
+                                , 'amount' => number_format($amount, 2, '.', '') /* Total sum to pay per cycle. */
                                 , 'currency' => $profileData['currency_code']
                                 ]
                    , 'cardTransactionMode' => 'authAndCapture'
                    , 'invoiceEmail' => ''
-                   , 'backUrl' => $backUrl
+                   , 'backUrl' => Mage::getBaseUrl() . "tpay/payment/response"
                    ];
 
       /* Add the recurring profile data. */
@@ -318,7 +327,7 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
 
   /**
    * Function that processes the backUrl message of the server.
-   * 
+   *
    * @return void
    */
   public function responseAction(){
@@ -440,7 +449,7 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
 
   /**
    * Function that processes the IPN (Instant Payment Notification) message of the server.
-   * 
+   *
    * @return void
    */
   public function serverAction(){
@@ -546,16 +555,18 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
       }
     }
 
-    /* ADD AUTOMATIC CANCEL */
-    /* Extract transactions again in order to include the last one that may have been added. */
-    $transactions = Mage::getModel('sales/order_payment_transaction')->getCollection()->addOrderIdFilter($order->getId());
+    if('r' == $decrypted['identifier'][0]){
+      /* ADD AUTOMATIC CANCEL */
+      /* Extract transactions again in order to include the last one that may have been added. */
+      $transactions = Mage::getModel('sales/order_payment_transaction')->getCollection()->addOrderIdFilter($order->getId());
 
-    /* Calculate the max number of payments for this recurring profile. */
-    $maxPaymentCycles = (1 <= $profile->getTrialPeriodMaxCycles()) ? ($profile->getPeriodMaxCycles() + 1) : ($profile->getPeriodMaxCycles());
+      /* Calculate the max number of payments for this recurring profile. */
+      $maxPaymentCycles = (1 <= $profile->getTrialPeriodMaxCycles()) ? ($profile->getPeriodMaxCycles() + 1) : ($profile->getPeriodMaxCycles());
 
-    if($transactions->count() == $maxPaymentCycles){
-      /* Cancel the recurring profile. */
-      Mage::helper('tpay')->cancelRecurringProfile($profile, $order, 'Automatic cancel.');
+      if($transactions->count() == $maxPaymentCycles){
+        /* Cancel the recurring profile. */
+        Mage::helper('tpay')->cancelRecurringProfile($profile, $order, 'Automatic cancel.');
+      }
     }
 
     $this->getResponse()->setBody('OK');

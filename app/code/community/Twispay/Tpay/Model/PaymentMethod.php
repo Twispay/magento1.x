@@ -46,7 +46,7 @@ class Twispay_Tpay_Model_PaymentMethod extends Mage_Payment_Model_Method_Abstrac
    * Dummy function that is called when the config 'Payment Action'
    *  option is set to "Authorize Only" and will automatically
    *  authorize all the received orders.
-   * 
+   *
    * Background operations:
    *   - order with status PROCESSING is created;
    *   - transaction is registered into magento with the transaction id;
@@ -62,7 +62,7 @@ class Twispay_Tpay_Model_PaymentMethod extends Mage_Payment_Model_Method_Abstrac
    * Dummy function that is called when the config 'Payment Action'
    *  option is set to "Authorize and Capture" and will automatically
    *  authorize and capture all the received orders.
-   * 
+   *
    * Background operations:
    *   - order with status PROCESSING is created;
    *   - transaction is registered into magento with the transaction id;
@@ -79,7 +79,7 @@ class Twispay_Tpay_Model_PaymentMethod extends Mage_Payment_Model_Method_Abstrac
    * Function that is called when a refund is done.
    */
   public function refund(Varien_Object $payment, $amount) {
-    Mage::Log(__FUNCTION__ . ': amount=' . print_r($amount, true), Zend_Log::DEBUG, $this->logFileName);
+    Mage::Log(__FUNCTION__ . ': amount=' . print_r($amount, true), Zend_Log::NOTICE, $this->logFileName);
 
     /* Extract the transaction and transaction data. */
     $transactionId = $this->_getParentTransactionId($payment);

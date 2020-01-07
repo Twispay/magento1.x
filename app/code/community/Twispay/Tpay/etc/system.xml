@@ -77,7 +77,7 @@
                             <show_in_default>1</show_in_default>
                             <show_in_website>0</show_in_website>
                             <show_in_store>1</show_in_store>
-                            <comment><![CDATA[You must copy this <a href="/tpay/payment/server/">link</a> and add it in your merchant account with the Twispay Payment Gateway.]]></comment>
+                            <comment><![CDATA[You must copy this <a href="/tpay/payment/server/">link</a> (right click -> Copy link address) and add it in your merchant account with the Twispay Payment Gateway.]]></comment>
                         </paymentServer>
                         <contactEmail translate="label">
                             <label>Contact email(Optional)</label>
