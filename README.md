@@ -2,6 +2,9 @@
 - Twispay Credit Card Payments is the official payment module built for Magento 1.
 
 ## Description
+
+***Note** :  In case you encounter any difficulties with integration, please contact us at support@twispay.com and we'll assist you through the process.*
+
 [Twispay](https://www.twispay.com) is a European certified acquiring bank with a sleek payment gateway optimized for online shops. We process payments from worldwide customers using Mastercard or Visa debit and credit cards. Increase your purchases by using our conversion rate optimized checkout flow and manage your transactions with our dashboard created specifically for online merchants like you.
 
 Our Magento 1 payment extension allows for fast and easy integration with the Twispay Payment Gateway. Quickly start accepting online credit card payments through a secure environment and a fully customizable checkout process. Give your customers the shopping experience they expect, and boost your online sales with our simple and elegant payment plugin.
@@ -28,7 +31,7 @@ We take pride in offering world class, free customer support to all our merchant
 
 ## Installation
 The easiest way of installing our module is by visiting the [official module page](https://marketplace.magento.com/twispay-twispay-tpay.html).
-Alternatively, you can check out our [installation guide](#) for detailed step by step instructions.
+<!-- Alternatively, you can check out our [installation guide](#) for detailed step by step instructions.-->
 1. Login to the official Magento website and [login](https://account.magento.com/customer/account/login)
 2. Access the [marketplace](https://marketplace.magento.com/)
 3. Search for the **twispay** keyword
