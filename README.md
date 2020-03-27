@@ -46,8 +46,8 @@ Alternatively, you can check out our [installation guide](#) for detailed step b
 15. Go to **System** -> **Configuration**
 16. Go to **Payment Methods**
 17. Select **Yes** under **Live mode**. _(Unless you are testing)_
-18. Enter your **Site ID**. _(You can get one from [here for live](https://merchant.twispay.com/login) or from [here for stage](https://merchant-stage.twispay.com/login))_
-19. Enter your **Private Key**. _(You can get one from [here for live](https://merchant.twispay.com/login) or from [here for stage](https://merchant-stage.twispay.com/login))_
+18. Enter your **Site ID**. _(You can get one from [here for live](https://merchant.twispay.com//auth/signin) or from [here for stage](https://merchant-stage.twispay.com/auth/signin)_
+19. Enter your **Private Key**. _(You can get one from [here for live](https://merchant.twispay.com/auth/signin) or from [here for stage](https://merchant-stage.twispay.com/auth/signin)_
 20. Enter your support **Contact Email**. _(This will be displayed to customers in case of a payment error)_
 21. Save your changes.
 
