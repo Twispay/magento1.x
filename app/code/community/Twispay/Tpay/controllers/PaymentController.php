@@ -392,7 +392,7 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
                                                               , $order
                                                               , $decrypted['orderId']
                                                               , $decrypted['transactionId']
-                                                              , /*status*/(empty($decrypted['status'])) ? ($decrypted['transactionStatus']) : ($decrypted['status'])
+                                                              , $decrypted['transactionStatus']
                                                               , $decrypted['identifier'][0]);
 
     /* Redirect user to propper checkout page. */
@@ -511,7 +511,7 @@ class Twispay_Tpay_PaymentController extends Mage_Core_Controller_Front_Action{
                                                           , $order
                                                           , $decrypted['orderId']
                                                           , $decrypted['transactionId']
-                                                          , /*status*/(empty($decrypted['status'])) ? ($decrypted['transactionStatus']) : ($decrypted['status'])
+                                                          , $decrypted['transactionStatus']
                                                           , $decrypted['identifier'][0]);
 
     if (TRUE == $statusUpdate) {
