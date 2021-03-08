@@ -723,7 +723,7 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
       return FALSE;
     }
 
-    if(empty($tw_response['status']) && empty($tw_response['transactionStatus'])) {
+    if(empty($tw_response['transactionStatus'])) {
       $tw_errors[] = Mage::helper('tpay')->__(' [RESPONSE-ERROR]: Empty status');
     }
 
@@ -747,7 +747,7 @@ class Twispay_Tpay_Helper_Data extends Mage_Core_Helper_Abstract {
       return FALSE;
     } else {
       $data = [ 'externalOrderId' => explode('_', $tw_response['externalOrderId'])[0]
-              , 'status'          => (empty($tw_response['status'])) ? ($tw_response['transactionStatus']) : ($tw_response['status'])
+              , 'status'          => $tw_response['transactionStatus']
               , 'identifier'      => $tw_response['identifier']
               , 'orderId'         => (int)$tw_response['orderId']
               , 'transactionId'   => (int)$tw_response['transactionId']
